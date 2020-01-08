@@ -74,9 +74,6 @@ class WeDevs_WC_Conversion_Tracking {
         $this->init_hooks();
         $this->includes();
         $this->init_classes();
-
-        register_activation_hook( __FILE__, array( $this, 'activate' ) );
-        do_action( 'wcct_loaded' );
     }
 
     /**
@@ -130,10 +127,7 @@ class WeDevs_WC_Conversion_Tracking {
         require_once WCCT_INCLUDES . '/class-abstract-integration.php';
         require_once WCCT_INCLUDES . '/class-integration-manager.php';
         require_once WCCT_INCLUDES . '/class-event-dispatcher.php';
-        require_once WCCT_INCLUDES . '/class-integration-pro-features.php';
-        require_once WCCT_INCLUDES . '/class-ajax.php';
         require_once WCCT_INCLUDES . '/class-admin.php';
-        require_once WCCT_INCLUDES . '/class-welcome-20.php';
     }
 
     /**
@@ -144,29 +138,9 @@ class WeDevs_WC_Conversion_Tracking {
      * @return void
      */
     public function define_constants() {
-        define( 'WCCT_VERSION', $this->version );
         define( 'WCCT_FILE', __FILE__ );
         define( 'WCCT_PATH', dirname( WCCT_FILE ) );
         define( 'WCCT_INCLUDES', WCCT_PATH . '/includes' );
-        define( 'WCCT_URL', plugins_url( '', WCCT_FILE ) );
-        define( 'WCCT_ASSETS', WCCT_URL . '/assets' );
-    }
-
-    /**
-     * Plugin activation routeis
-     *
-     * @since 1.2.5
-     *
-     * @return void
-     */
-    public function activate() {
-        $installed = get_option( 'wcct_installed' );
-
-        if ( ! $installed ) {
-            update_option( 'wcct_installed', time() );
-        }
-
-        update_option( 'wcct_version', WCCT_VERSION );
     }
 
     /**
@@ -175,15 +149,8 @@ class WeDevs_WC_Conversion_Tracking {
      * @return void
      */
     public function init_hooks() {
-
-        add_action( 'plugins_loaded', array( $this, 'plugin_upgrades' ) );
-        add_action( 'init', array( $this, 'localization_setup' ) );
-
         add_action( 'admin_notices', array( $this, 'check_woocommerce_exist' ) );
         add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
-        add_action( 'admin_notices', array( $this, 'happy_addons_ads_banner' ) );
-
-        $this->init_tracker();
     }
 
     /**
@@ -192,79 +159,9 @@ class WeDevs_WC_Conversion_Tracking {
      * @return void
      */
     public function init_classes() {
-        $this->container['ajax']                = new WCCT_Ajax();
-        $this->container['event_dispatcher']    = new WCCT_Event_Dispatcher();
-        $this->container['admin']               = new WCCT_Admin();
-        $this->container['manager']             = new WCCT_Integration_Manager();
-
-        new WCCT_Welcome_20();
-
-        if ( ! class_exists( 'WeDevs_WC_Conversion_Tracking_Pro') ) {
-            $this->container['pro_feature'] = new WCCT_Pro_Features();
-        }
-    }
-
-    /**
-     * Initialize plugin for localization
-     *
-     * @uses load_plugin_textdomain()
-     */
-    public function localization_setup() {
-        load_plugin_textdomain( 'woocommerce-conversion-tracking', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
-    }
-
-    /**
-     * Do plugin upgrade
-     *
-     * @since  2.0
-     * @return void
-     */
-    public function plugin_upgrades() {
-        if ( ! is_admin() && ! current_user_can( 'manage_options' ) ) {
-            return;
-        }
-
-        require_once WCCT_INCLUDES . '/class-upgrades.php';
-
-        $upgrader   = new WCCT_Upgrades();
-
-        if ( $upgrader->needs_update() ) {
-            $upgrader->perform_updates();
-        }
-    }
-
-    /**
-     * Initialize the weDevs insights tracker
-     *
-     * @since 1.2.3
-     *
-     * @return void
-     */
-    public function init_tracker() {
-        if ( ! class_exists( 'Appsero\Client' ) ) {
-            require_once __DIR__ . '/lib/appsero/Client.php';
-        }
-
-        $client = new Appsero\Client(
-            '6816029d-7d48-4ed3-8ae4-aeb6a9496f21',
-            'WooCommerce Conversion Tracking',
-            __FILE__
-        );
-
-        // Active insights
-        $client->insights()->init();
-    }
-
-    /**
-     * Check the pro version
-     *
-     * @return boolean
-     */
-    public function is_pro() {
-        if ( class_exists( 'WeDevs_WC_Conversion_Tracking_Pro' ) ) {
-            return true;
-        }
-        return false;
+        $this->container['event_dispatcher'] = new WCCT_Event_Dispatcher();
+        $this->container['admin']            = new WCCT_Admin();
+        $this->container['manager']          = new WCCT_Integration_Manager();
     }
 
     /**
@@ -275,11 +172,6 @@ class WeDevs_WC_Conversion_Tracking {
      * @return array
      */
     function plugin_action_links( $links ) {
-        if ( ! $this->is_pro() ) {
-            $links[] = '<a href="https://wedevs.com/woocommerce-conversion-tracking/upgrade-to-pro/?utm_source=wp-admin&utm_medium=pro-upgrade&utm_campaign=wcct_upgrade&utm_content=Get_Premium" target="_blank" style="color: #389e38;font-weight: bold;">' . __( 'Get PRO', 'woocommerce-conversion-tracking' ) . '</a>';
-        }
-
-        $links[] = '<a href="https://wedevs.com/docs/woocommerce-conversion-tracking/get-started/?utm_source=wp-admin&utm_medium=action-link&utm_campaign=wcct_docs&utm_content=Docs" target="_blank">' . __( 'Docs', 'woocommerce-conversion-tracking' ) . '</a>';
         $links[] = '<a href="' . admin_url( 'admin.php?page=conversion-tracking' ) . '">' . __( 'Settings', 'woocommerce-conversion-tracking' ) . '</a>';
 
         return $links;
@@ -297,45 +189,6 @@ class WeDevs_WC_Conversion_Tracking {
                 </div>
             <?php
         }
-    }
-
-    /**
-     * Add happy addons ads banner
-     *
-     * @return void
-     */
-    public function happy_addons_ads_banner() {
-        if ( ! class_exists( '\Elementor\Plugin' ) ) {
-            return;
-        }
-
-        if ( class_exists( '\Happy_Addons\Elementor\Base' ) ) {
-            return;
-        }
-        $dismissable = get_option( 'wcct_dismissable_notice' );
-
-        if ( $dismissable == 'closed' ) {
-            return;
-        }
-
-        ?>
-            <div id="wcct_remote_notice" class="notice notice-success">
-            </div>
-            <div class="notice is-dismissible wcct-notice-wrap">
-                <div class="wcct-message-icon">
-                    <img src="<?php echo esc_attr( WCCT_ASSETS . '/images/happy-addons.png' )?>" alt="">
-                </div>
-                <div class="wcct-message-content">
-                    <p><?php echo wp_kses_post( __( 'Reach beyond your imagination in creating web pages. <strong> Try Happy Addons for Elementor to shape your dream.</strong> 😊') ) ?></p>
-                </div>
-                <div class="wcct-message-action">
-                    <a href="" id="wcct-install-happ-addons" class="button button-primary"> <i class="dashicons dashicons-update wcct-update-icon"></i> Install Now For FREE</a>
-                    <p></strong><a target="_blank" href="https://wordpress.org/plugins/happy-elementor-addons/">Read more details ➔</a>
-                    </p>
-                </div>
-            </div>
-
-        <?php
     }
 }
 
