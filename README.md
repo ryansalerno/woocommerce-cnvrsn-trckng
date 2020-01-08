@@ -1,17 +1,6 @@
-WooCommerce Conversion Tracking
+WooCommerce Cnvrsn Trckng
 ====================
 
-Integrates conversion tracking codes from Facebook, Google and various providers.
+Forked from the very excellent [WooCommerce Conversion Tracking](https://github.com/tareq1988/woocommerce-conversion-tracking) plugin by [Tareq Hasan](http://tareq.weDevs.com).
 
-Why?
----------------
-
-When you are integrating any advertising campaigns, they provide various tracking codes (mainly JavaScript) to insert them various pages of your site so that it can track how the conversion is happening.
-
-This plugin inserts those codes on WooCommerce cart page, checkout success page and after user registration. So you can track who are adding your products to cart, who are buying them and who are registering to your site.
-
-[Download](http://wordpress.org/plugins/woocommerce-conversion-tracking/)
-
-Author
----
-[Tareq Hasan](http://tareq.weDevs.com)
+This version has a bunch of stuff removed (denoted by also removing most of the vowels in the name), followed by some opinionated changes and restructuring, and hopefully/eventually some small- to medium-sized new features.
