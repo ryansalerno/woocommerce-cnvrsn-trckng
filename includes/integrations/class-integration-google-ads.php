@@ -3,16 +3,16 @@
 /**
  * Google Ads Integration
  */
-class Cnvrsn_Integration_Google extends Cnvrsn_Integration {
+class Cnvrsn_Integration_Google_Ads extends Cnvrsn_Integration {
 
 	/**
 	 * Constructor for Cnvrsn_Integration_Google
 	 */
 	function __construct() {
-		$this->id           = 'adwords';
-		$this->name         = __( 'Google Ads', 'woocommerce-cnvrsn-trckng' );
-		$this->enabled      = true;
-		$this->supports     = array(
+		$this->id       = 'google-ads';
+		$this->name     = __( 'Google Ads', 'woocommerce-cnvrsn-trckng' );
+		$this->enabled  = false;
+		$this->supports = array(
 			'checkout',
 		);
 	}
@@ -122,5 +122,3 @@ class Cnvrsn_Integration_Google extends Cnvrsn_Integration {
 		wc_enqueue_js( $code );
 	}
 }
-
-return new Cnvrsn_Integration_Google();

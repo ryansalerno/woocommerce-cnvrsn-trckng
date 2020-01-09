@@ -9,10 +9,10 @@ class Cnvrsn_Integration_Custom extends Cnvrsn_Integration {
 	 * Constructor for Cnvrsn_Integration_Custom class
 	 */
 	function __construct() {
-		$this->id           = 'custom';
-		$this->name         = __( 'Custom', 'woocommerce-cnvrsn-trckng' );
-		$this->enabled      = true;
-		$this->supports     = array(
+		$this->id       = 'custom';
+		$this->name     = __( 'Custom', 'woocommerce-cnvrsn-trckng' );
+		$this->enabled  = false;
+		$this->supports = array(
 			'checkout',
 			'registration'
 		);
@@ -110,7 +110,6 @@ class Cnvrsn_Integration_Custom extends Cnvrsn_Integration {
 			// older version
 			$order_currency = $order->get_order_currency();
 			$payment_method = $order->payment_method;
-
 		} else {
 			$order_currency = $order->get_currency();
 			$payment_method = $order->get_payment_method();
@@ -124,7 +123,6 @@ class Cnvrsn_Integration_Custom extends Cnvrsn_Integration {
 		$order_subtotal = $order->get_subtotal();
 		$order_discount = $order->get_total_discount();
 		$order_shipping = $order->get_total_shipping();
-
 
 		// customer details
 		if ( $customer ) {
@@ -147,5 +145,3 @@ class Cnvrsn_Integration_Custom extends Cnvrsn_Integration {
 		return $code;
 	}
 }
-
-return new Cnvrsn_Integration_Custom();
