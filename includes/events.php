@@ -98,7 +98,7 @@ function start_checkout() {
  * @since 0.1.0
  */
 function purchase( $order_id ) {
-	dispatch_event( 'purchase', $order_id );
+	dispatch_event( 'purchase', get_purchase_data( $order_id ) );
 }
 
 /**
@@ -213,4 +213,45 @@ function enqueue_scripts() {
 	<?php echo implode( PHP_EOL, apply_filters( 'cnvrsn_trckng_enqueued_scripts', $scripts ) ); ?>
 	<!-- End: WooCommerce Cnvrsn Trckng -->
 	<?php
+}
+
+/**
+ * Fetch a bunch of order-related data for inclusion into the script
+ *
+ * @param  string $order_id
+ * @return array
+ * @since 0.1.0
+ */
+function get_purchase_data( $order_id ) {
+	$order = wc_get_order( $order_id );
+
+	// bail if not a valid order
+	if ( ! is_a( $order, 'WC_Order' ) ) { return; }
+
+	// TODO: break this up and only fetch what's requested
+	// this overkill feels better than repeating the fetching code everywhere,
+	// but is less efficient than getting the minimal amount of data
+
+	$backcompat = version_compare( WC()->version, '3.0', '<' );
+
+	$data = array();
+
+	$data['currency']       = $backcompat ? $order->get_order_currency() : $order->get_currency();
+	$data['order_number']   = $order->get_order_number();
+	$data['order_total']    = $order->get_total() ? $order->get_total() : 0;
+	$data['order_subtotal'] = $order->get_subtotal();
+	$data['order_discount'] = $order->get_total_discount();
+	$data['order_shipping'] = $order->get_total_shipping();
+	$data['payment_method'] = $backcompat ? $order->payment_method : $order->get_payment_method();
+	$data['used_coupons']   = $order->get_used_coupons() ? implode( ',', $order->get_used_coupons() ) : '';
+
+	$customer = $order->get_user();
+	if ( $customer ) {
+		$data['customer_id']         =  $customer->ID;
+		$data['customer_email']      =  $customer->user_email;
+		$data['customer_first_name'] =  $customer->first_name;
+		$data['customer_last_name']  =  $customer->last_name;
+	}
+
+	return $data;
 }

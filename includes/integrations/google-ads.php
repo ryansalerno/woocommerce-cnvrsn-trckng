@@ -3,26 +3,27 @@
 /**
  * Google Ads Integration
  */
-class Cnvrsn_Integration_Google_Ads extends Cnvrsn_Integration {
+namespace CnvrsnTrckng;
 
+class GoogleAdsIntegration extends Integration {
 	/**
-	 * Constructor for Cnvrsn_Integration_Google
+	 * Set up our integration
 	 */
 	function __construct() {
 		$this->id       = 'google-ads';
 		$this->name     = __( 'Google Ads', 'woocommerce-cnvrsn-trckng' );
-		$this->enabled  = false;
-		$this->supports = array(
-			'checkout',
+		$this->events = array(
+			'purchase',
 		);
 	}
 
 	/**
-	 * Get settings
+	 * Get settings fields definitions
 	 *
 	 * @return array
+	 * @since 0.1.0
 	 */
-	public function get_settings() {
+	public function get_settings_fields() {
 		$settings = array(
 			'id'  => array(
 				'type'        => 'text',
@@ -48,7 +49,7 @@ class Cnvrsn_Integration_Google_Ads extends Cnvrsn_Integration {
 			),
 		);
 
-		return apply_filters( 'cnvrsn_settings_adwords', $settings );
+		return apply_filters( 'cnvrsn_trckng_settings_' . $this->id, $settings );
 	}
 
 	/**
@@ -57,8 +58,8 @@ class Cnvrsn_Integration_Google_Ads extends Cnvrsn_Integration {
 	 * @param  string $event_name
 	 * @param  array $params
 	 * @param  string $method
-	 *
 	 * @return string
+	 * @since 0.1.0
 	 */
 	public function build_event( $event_name, $params = array(), $method = 'event' ) {
 		return sprintf( "gtag('%s', '%s', %s);", $method, $event_name, json_encode( $params, JSON_PRETTY_PRINT | JSON_FORCE_OBJECT | JSON_UNESCAPED_SLASHES ) );
@@ -67,19 +68,14 @@ class Cnvrsn_Integration_Google_Ads extends Cnvrsn_Integration {
 	/**
 	 * Enqueue script
 	 *
-	 * @return void
+	 * @return string
+	 * @since 0.1.0
 	 */
 	public function enqueue_script() {
-		if ( ! $this->is_enabled() ) {
-			return;
-		}
+		$settings   = $this->get_plugin_settings();
+		$account_id = ! empty( $settings[$this->id]['account_id'] ) ? $settings[$this->id]['account_id'] : '';
 
-		$settings   = $this->get_integration_settings();
-		$account_id = ! empty( $settings[0]['account_id'] ) ? $settings[0]['account_id'] : '';
-
-		if ( empty( $account_id ) ) {
-			return;
-		}
+		if ( empty( $account_id ) ) { return; }
 
 		$script = '<script async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $account_id ) . '"></script>';
 		$script .= '<script>'.
@@ -93,26 +89,22 @@ class Cnvrsn_Integration_Google_Ads extends Cnvrsn_Integration {
 	}
 
 	/**
-	 * Check Out google adwords
+	 * Event: Purchase
 	 *
-	 * @return void
+	 * @since 0.1.0
 	 */
-	public function checkout( $order_id ) {
-		$settings   = $this->get_integration_settings();
-		$account_id = isset( $settings[0]['account_id'] ) ? $settings[0]['account_id'] : '';
-		$label      = isset( $settings[0]['events']['Purchase-label'] ) ? $settings[0]['events']['Purchase-label'] : '';
+	public function purchase( $order_data ) {
+		$settings   = $this->get_plugin_settings();
+		$account_id = isset( $settings[$this->id]['account_id'] ) ? $settings[$this->id]['account_id'] : '';
+		$label      = isset( $settings[$this->id]['events']['Purchase-label'] ) ? $settings[$this->id]['events']['Purchase-label'] : '';
 
-		if ( empty( $account_id ) || empty( $label ) ) {
-			return;
-		}
-
-		$order = new WC_Order( $order_id );
+		if ( empty( $account_id ) || empty( $label ) ) { return; }
 
 		$code = $this->build_event( 'conversion', array(
 			'send_to'        => sprintf( "%s/%s", $account_id, $label ),
-			'transaction_id' => $order_id,
-			'value'          => $order->get_total() ? $order->get_total() : 0,
-			'currency'       => get_woocommerce_currency()
+			'transaction_id' => $order_data['order_number'],
+			'value'          => $order_data['order_total'],
+			'currency'       => $order_data['currency']
 		) );
 
 		wc_enqueue_js( $code );

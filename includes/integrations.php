@@ -30,12 +30,12 @@ class IntegrationManager {
 	 * @since 0.1.0
 	 */
 	static function load_integrations() {
-		require_once __DIR__ . '/integrations/abstract-integration.php';
-		require_once __DIR__ . '/integrations/class-integration-custom.php';
-		require_once __DIR__ . '/integrations/class-integration-google-ads.php';
+		require_once __DIR__ . '/integrations/_abstract.php';
+		require_once __DIR__ . '/integrations/custom.php';
+		require_once __DIR__ . '/integrations/google-ads.php';
 
-		self::$integrations['google-ads'] = new \Cnvrsn_Integration_Google_Ads();
-		self::$integrations['custom'] = new \Cnvrsn_Integration_Custom();
+		self::$integrations['google-ads'] = new GoogleAdsIntegration();
+		self::$integrations['custom'] = new CustomIntegration();
 
 		self::check_active_integrations();
 	}
