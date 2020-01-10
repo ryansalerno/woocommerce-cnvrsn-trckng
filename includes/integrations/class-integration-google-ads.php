@@ -80,16 +80,16 @@ class Cnvrsn_Integration_Google_Ads extends Cnvrsn_Integration {
 		if ( empty( $account_id ) ) {
 			return;
 		}
-		?>
-		<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo esc_attr( $account_id ); ?>"></script>
-		<script>
-			window.dataLayer = window.dataLayer || [];
-			function gtag(){dataLayer.push(arguments)};
-			gtag('js', new Date());
 
-			gtag('config', '<?php echo esc_attr( $account_id ); ?>');
-		</script>
-		<?php
+		$script = '<script async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $account_id ) . '"></script>';
+		$script .= '<script>'.
+			'window.dataLayer = window.dataLayer || [];'.
+			'function gtag(){dataLayer.push(arguments)};'.
+			'gtag("js", new Date());'.
+			'gtag("config", "' . esc_attr( $account_id ) . '");'.
+		'</script>';
+
+		return $script;
 	}
 
 	/**
@@ -98,10 +98,6 @@ class Cnvrsn_Integration_Google_Ads extends Cnvrsn_Integration {
 	 * @return void
 	 */
 	public function checkout( $order_id ) {
-		if ( ! $this->event_enabled( 'Purchase' ) ) {
-			return;
-		}
-
 		$settings   = $this->get_integration_settings();
 		$account_id = isset( $settings[0]['account_id'] ) ? $settings[0]['account_id'] : '';
 		$label      = isset( $settings[0]['events']['Purchase-label'] ) ? $settings[0]['events']['Purchase-label'] : '';

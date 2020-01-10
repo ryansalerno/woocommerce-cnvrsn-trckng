@@ -51,9 +51,7 @@ class Cnvrsn_Integration_Custom extends Cnvrsn_Integration {
 	 *
 	 * @return void
 	 */
-	public function enqueue_script() {
-
-	}
+	public function enqueue_script() {}
 
 	/**
 	 * Check Out
@@ -61,10 +59,6 @@ class Cnvrsn_Integration_Custom extends Cnvrsn_Integration {
 	 * @return void
 	 */
 	public function checkout( $order_id ) {
-		if ( ! $this->is_enabled() ) {
-			return;
-		}
-
 		$code = $this->get_integration_settings();
 
 		if ( isset( $code['checkout'] ) && ! empty( $code['checkout'] ) ) {
@@ -78,13 +72,10 @@ class Cnvrsn_Integration_Custom extends Cnvrsn_Integration {
 	 * @return void
 	 */
 	public function registration() {
-		if ( $this->is_enabled() ) {
+		$code = $this->get_integration_settings();
 
-			$code = $this->get_integration_settings();
-
-			if ( isset( $code['registration'] ) && ! empty( $code['registration'] ) ) {
-				echo wp_kses_post( $code['registration'] ) ;
-			}
+		if ( isset( $code['registration'] ) && ! empty( $code['registration'] ) ) {
+			echo wp_kses_post( $code['registration'] ) ;
 		}
 	}
 
