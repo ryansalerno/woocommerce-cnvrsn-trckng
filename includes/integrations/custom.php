@@ -81,28 +81,15 @@ class CustomIntegration extends Integration {
 	}
 
 	/**
-	 * Event: Purchase
+	 * Generic event handler
 	 *
 	 * @since 0.1.0
 	 */
-	public function purchase( $order_data ) {
-		$code = $this->get_plugin_settings();
+	public function generic_event( $event, $data ) {
+		$codes = $this->get_plugin_settings( 'codes' );
 
-		if ( isset( $code['purchase'] ) && ! empty( $code['purchase'] ) ) {
-			echo wp_kses( $this->dynamic_data_replacement( $code['purchase'], $order_data ), 'post' );
-		}
-	}
+		if ( ! $codes || ! isset( $codes[$event] ) || empty( $codes[$event] ) ) { return; }
 
-	/**
-	 * Event: Registration
-	 *
-	 * @since 0.1.0
-	 */
-	public function registration() {
-		$code = $this->get_plugin_settings();
-
-		if ( isset( $code['registration'] ) && ! empty( $code['registration'] ) ) {
-			echo wp_kses( $code['registration'], 'post' );
-		}
+		echo wp_kses( $this->dynamic_data_replacement( $codes[$event], $data ), 'post' );
 	}
 }

@@ -199,7 +199,14 @@ function wishlist() {
 function dispatch_event( $event, $value = '' ) {
 	foreach ( IntegrationManager::active_integrations() as $integration ) {
 		if ( ! $integration->event_enabled( $event ) ) { continue; }
+
+		if ( method_exists( $integration, $event ) ) {
 			$integration->$event( $value );
+			continue;
+		}
+
+		if ( method_exists( $integration, 'generic_event' ) ) {
+			$integration->generic_event( $event, $value );
 		}
 	}
 }
