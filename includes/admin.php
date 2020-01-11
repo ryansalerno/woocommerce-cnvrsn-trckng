@@ -122,18 +122,13 @@ function integration_events_cb( $args ) {
 	$events = $args['integration']->get_events();
 	if ( empty( $events ) ) { return; }
 
-	$settings = get_settings();
-	$id       = $args['integration']->get_id();
-	$key      = 'cnvrsn_trckng_settings[integrations][' . $id . '][events]';
+	$id  = $args['integration']->get_id();
+	$key = 'cnvrsn_trckng_settings[integrations][' . $id . '][events]';
 
 	$checkboxen = array();
 	foreach ( (array) $events as $event ) {
-		$checked = '';
-		if ( isset( $settings['integrations'] ) && isset( $settings['integrations'][$id] ) && isset( $settings['integrations'][$id]['events'] ) && isset( $settings['integrations'][$id]['events'][$event] ) ) {
-			$checked = checked( $settings['integrations'][$id]['events'][$event], true, false );
-		}
 		$checkboxen[] = '<label>' .
-			'<input type="checkbox" name="' . $key . '[' . esc_attr( $event ) . ']' . '" ' . $checked . ' data-toggle="' . esc_attr( $id . '-' . $event ) . '"/>' .
+			'<input type="checkbox" name="' . $key . '[' . esc_attr( $event ) . ']' . '" ' . checked( $args['integration']->event_enabled( $event ) ) . ' data-toggle="' . esc_attr( $id . '-' . $event ) . '"/>' .
 			Events\get_event_label( $event ) .
 		'</label>';
 	}

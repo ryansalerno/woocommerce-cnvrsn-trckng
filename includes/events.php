@@ -198,7 +198,7 @@ function wishlist() {
  */
 function dispatch_event( $event, $value = '' ) {
 	foreach ( IntegrationManager::active_integrations() as $integration ) {
-		if ( $integration->supports( $event ) && method_exists( $integration, $event ) ) {
+		if ( ! $integration->event_enabled( $event ) ) { continue; }
 			$integration->$event( $value );
 		}
 	}

@@ -142,13 +142,11 @@ abstract class Integration {
 	 * @since 0.1.0
 	 */
 	public function event_enabled( $event ) {
-		$settings = $this->get_plugin_settings();
+		$events = $this->get_plugin_settings( 'events' );
 
-		if ( isset( $settings[0]['events'] ) && array_key_exists( $event, $settings[0]['events'] ) && $settings[0]['events'][ $event ] == 'on' ) {
-			return true;
-		}
+		if ( ! $events || ! isset( $events[$event] ) ) { return false; }
 
-		return false;
+		return $events[$event];
 	}
 
 	/**
