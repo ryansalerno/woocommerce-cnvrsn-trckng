@@ -131,9 +131,7 @@ abstract class Integration {
 	 * @since 0.1.0
 	 */
 	public function is_enabled() {
-		$settings = $this->get_plugin_settings();
-
-		return ( $settings && $settings['enabled'] === true );
+		return $this->get_plugin_settings( 'enabled' );
 	}
 
 	/**
@@ -156,18 +154,20 @@ abstract class Integration {
 	/**
 	 * Get settings from the plugin
 	 *
-	 * @param  string $integration_id
+	 * @param  string $key
 	 * @return array|false
 	 * @since 0.1.0
 	 */
-	protected function get_plugin_settings() {
-		$integration_settings = Admin\get_settings();
+	protected function get_plugin_settings( $key = '' ) {
+		$settings = Admin\get_settings();
 
-		if ( isset( $integration_settings['integrations'][$this->id] ) ) {
-			return $integration_settings['integrations'][$this->id];
+		if ( ! isset( $settings['integrations'][$this->id] ) ) { return false; }
+
+		if ( $key ) {
+			return isset( $settings['integrations'][$this->id][$key] ) ? $settings['integrations'][$this->id][$key] : false;
 		}
 
-		return false;
+		return $settings['integrations'][$this->id];
 	}
 
 	/**

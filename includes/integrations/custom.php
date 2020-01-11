@@ -41,13 +41,13 @@ class CustomIntegration extends Integration {
 	 * @since 0.1.0
 	 */
 	public function settings_codes_cb() {
-		$settings = $this->get_plugin_settings();
+		$codes = $this->get_plugin_settings( 'codes' );
 
 		echo '<h3>' . esc_html__( 'Enter your codes and pixels:', 'woocommerce-cnvrsn-trckng' ) . '</h3>';
 		foreach ( $this->get_events() as $event ) {
 			$value = '';
-			if ( isset( $settings['codes'] ) && isset( $settings['codes'][esc_attr($event)] ) ) {
-				$value = $settings['codes'][esc_attr($event)];
+			if ( $codes && isset( $codes[esc_attr($event)] ) ) {
+				$value = $codes[esc_attr($event)];
 			}
 			?>
 			<fieldset class="cnvrsn-custom-code cnvrsn-trckng-toggle-target" data-toggler="<?php echo esc_attr( $this->id . '-' . $event ); ?>">

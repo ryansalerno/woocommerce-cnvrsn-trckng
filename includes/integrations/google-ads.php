@@ -40,8 +40,8 @@ class GoogleAdsIntegration extends Integration {
 	 * @since 0.1.0
 	 */
 	public function settings_account_id_cb() {
-		$settings = $this->get_plugin_settings();
-		$value = isset( $settings['account_id'] ) ? $settings['account_id'] : '';
+		$account_id = $this->get_plugin_settings( 'account_id' );
+		$value = $account_id ? $account_id : '';
 		?>
 		<label class="cnvrsn-custom-label">
 			<?php echo esc_html__( 'Account ID', 'woocommerce-cnvrsn-trckng' ); ?>:
@@ -72,14 +72,11 @@ class GoogleAdsIntegration extends Integration {
 	 * @since 0.1.0
 	 */
 	public function settings_labels_cb() {
-		$settings = $this->get_plugin_settings();
+		$labels = $this->get_plugin_settings( 'labels' );
 
 		echo '<h3>' . esc_html__( 'Event Labels:', 'woocommerce-cnvrsn-trckng' ) . '</h3>';
 		foreach ( $this->get_events() as $event ) {
-			$value = '';
-			if ( isset( $settings['labels'] ) && isset( $settings['labels'][esc_attr($event)] ) ) {
-				$value = $settings['labels'][esc_attr($event)];
-			}
+			$value = isset( $labels[esc_attr($event)] ) ? $labels[esc_attr($event)] : '';
 			?>
 			<label class="cnvrsn-custom-label cnvrsn-trckng-toggle-target" data-toggler="<?php echo esc_attr( $this->id . '-' . $event ); ?>">
 				<?php echo Events\get_event_label( $event ); ?>:
@@ -134,10 +131,8 @@ class GoogleAdsIntegration extends Integration {
 	 * @since 0.1.0
 	 */
 	public function enqueue_script() {
-		$settings   = $this->get_plugin_settings();
-		$account_id = ! empty( $settings[$this->id]['account_id'] ) ? $settings[$this->id]['account_id'] : '';
-
-		if ( empty( $account_id ) ) { return; }
+		$account_id = $this->get_plugin_settings( 'account_id' );
+		if ( ! $account_id ) { return; }
 
 		$script = '<script async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $account_id ) . '"></script>';
 		$script .= '<script>'.
@@ -156,14 +151,11 @@ class GoogleAdsIntegration extends Integration {
 	 * @since 0.1.0
 	 */
 	public function purchase( $order_data ) {
-		$settings   = $this->get_plugin_settings();
-		$account_id = isset( $settings[$this->id]['account_id'] ) ? $settings[$this->id]['account_id'] : '';
-		$label      = isset( $settings[$this->id]['events']['Purchase-label'] ) ? $settings[$this->id]['events']['Purchase-label'] : '';
-
-		if ( empty( $account_id ) || empty( $label ) ) { return; }
+		$settings = $this->get_plugin_settings();
+		if ( ! isset( $settings['account_id'] ) || empty( $settings['account_id'] ) || ! isset( $settings['labels'] ) || ! isset( $settings['labels']['purchase'] ) || empty( $settings['labels']['purchase'] ) ) { return; }
 
 		$code = $this->build_event( 'conversion', array(
-			'send_to'        => sprintf( "%s/%s", $account_id, $label ),
+			'send_to'        => $settings['account_id'] . '/' . $settings['labels']['purchase'],
 			'transaction_id' => $order_data['order_number'],
 			'value'          => $order_data['order_total'],
 			'currency'       => $order_data['currency']
