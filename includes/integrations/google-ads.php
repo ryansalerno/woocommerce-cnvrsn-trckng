@@ -15,41 +15,103 @@ class GoogleAdsIntegration extends Integration {
 		$this->events = array(
 			'purchase',
 		);
+
+		parent::__construct();
 	}
 
 	/**
-	 * Get settings fields definitions
+	 * Add any custom settings before the events list
 	 *
-	 * @return array
 	 * @since 0.1.0
 	 */
-	public function get_settings_fields() {
-		$settings = array(
-			'id'  => array(
-				'type'        => 'text',
-				'name'        => 'account_id',
-				'label'       => __( 'Account ID', 'woocommerce-cnvrsn-trckng' ),
-				'value'       => '',
-				'placeholder' => 'AW-123456789',
-				'help'        => __( 'Provide the Google Ads Account ID. Usually it\'s something like <code>AW-123456789</code>.', 'woocommerce-cnvrsn-trckng' )
-			),
-			'events'    => array(
-				'type'    => 'multicheck',
-				'name'    => 'events',
-				'label'   => __( 'Events', 'woocommerce-cnvrsn-trckng' ),
-				'value'   => '',
-				'options' => array(
-					'Purchase'  => array(
-						'event_label_box'   => true,
-						'label'             => __( 'Purchase', 'woocommerce-cnvrsn-trckng' ),
-						'label_name'       => 'Purchase-label',
-						'placeholder'      => 'Add Your Purchase Label'
-					),
-				)
-			),
+	public function add_settings_fields_first() {
+		add_settings_field(
+			'integrations[' . $this->id . '][account_id]',
+			'',
+			array($this, 'settings_account_id_cb'),
+			'conversion-tracking',
+			'cnvrsn-integrations'
 		);
+	}
 
-		return apply_filters( 'cnvrsn_trckng_settings_' . $this->id, $settings );
+	/**
+	 * Render Account ID setting
+	 *
+	 * @since 0.1.0
+	 */
+	public function settings_account_id_cb() {
+		$settings = $this->get_plugin_settings();
+		$value = isset( $settings['account_id'] ) ? $settings['account_id'] : '';
+		?>
+		<label class="cnvrsn-custom-label">
+			<?php echo esc_html__( 'Account ID', 'woocommerce-cnvrsn-trckng' ); ?>:
+			<input type="text" name="<?php echo $this->settings_key( '[account_id]' ); ?>" placeholder="AW-123456789" value="<?php echo esc_attr( $value ); ?>"/>
+		</label>
+		<p class="help"><?php echo __( 'Provide your Google Ads Account ID. Usually it\'s something like <code>AW-123456789</code>.', 'woocommerce-cnvrsn-trckng' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Add any custom settings after the events list
+	 *
+	 * @since 0.1.0
+	 */
+	public function add_settings_fields_last() {
+		add_settings_field(
+			'integrations[' . $this->id . '][labels]',
+			'',
+			array( $this, 'settings_labels_cb' ),
+			'conversion-tracking',
+			'cnvrsn-integrations'
+		);
+	}
+
+	/**
+	 * We need a Label for each event
+	 *
+	 * @since 0.1.0
+	 */
+	public function settings_labels_cb() {
+		$settings = $this->get_plugin_settings();
+
+		echo '<h3>' . esc_html__( 'Event Labels:', 'woocommerce-cnvrsn-trckng' ) . '</h3>';
+		foreach ( $this->get_events() as $event ) {
+			$value = '';
+			if ( isset( $settings['labels'] ) && isset( $settings['labels'][esc_attr($event)] ) ) {
+				$value = $settings['labels'][esc_attr($event)];
+			}
+			?>
+			<label class="cnvrsn-custom-label cnvrsn-trckng-toggle-target" data-toggler="<?php echo esc_attr( $this->id . '-' . $event ); ?>">
+				<?php echo Events\get_event_label( $event ); ?>:
+				<input type="text" name="<?php echo $this->settings_key( '[labels][' . $event . ']' ); ?>" value="<?php echo esc_attr($value); ?>"/>
+			</label>
+			<?php
+		}
+	}
+
+	/**
+	 * For any added settings, we must have a sanitizer function or they won't be saved
+	 *
+	 * @since 0.1.0
+	 */
+	public function sanitize_settings_fields( $cleaned, $saved ) {
+		if ( ! isset( $saved['integrations'][$this->id] ) ) {
+			return $cleaned;
+		}
+
+		$integration = $saved['integrations'][$this->id];
+
+		if ( isset( $integration['account_id'] ) ) {
+			$cleaned['integrations'][$this->id]['account_id'] = esc_html( $integration['account_id'] );
+		}
+
+		if ( isset( $integration['labels'] ) && is_array( $integration['labels'] ) ) {
+			foreach ( $integration['labels'] as $event => $label ) {
+				@$cleaned['integrations'][$this->id]['labels'][esc_attr($event)] = esc_html( $label );
+			}
+		}
+
+		return $cleaned;
 	}
 
 	/**

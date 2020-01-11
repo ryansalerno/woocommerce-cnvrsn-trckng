@@ -1,45 +1,60 @@
-(function( $ ) {
+document.addEventListener('DOMContentLoaded', function(){
+	var scoped = document.querySelector('.cnvrsn-trckng');
+	if (!scoped){ return; }
 
-    // Toggoling the settings
-    $( '.slider' ).on( 'click', function() {
-        var id = $( this ).attr( 'data-id' );
-        var target = $( '#setting-'+id );
-        target.stop().toggle('fast');
-    });
+	decorate_rows();
+	setup_toggles();
 
-    // Default Settings
-    $( '.toogle-seller:checked' ).each( function( index, value ) {
-        var id =  $( value ).attr( 'data-id' );
-        var target = $( '#setting-'+id );
+	function decorate_rows(){
+		var rows = scoped.querySelectorAll('.form-table tr'),
+			rows_length = rows.length;
 
-        $( target ).css( 'display', 'block' );
-    } );
+		if (!rows_length){ return; }
 
-    $('.event').on( 'change', function() {
-        var target = $( this ).next('.event-label-box');
-        target.addClass( 'event-label-space' );
-        target.stop().toggle();
+		for (var cur,hdr,i = 0; i < rows_length; i++) {
+			hdr = rows[i].querySelector('.integration-header');
+			if (hdr){
+				rows[i].classList.add('header');
+				cur = hdr.querySelector('[data-toggle]').getAttribute('data-toggle');
+			} else {
+				rows[i].classList.add('cnvrsn-trckng-toggle-target');
+				rows[i].setAttribute('data-toggler', cur);
+			}
+		}
+	}
 
-    } );
+	function setup_toggles(){
+		var toggles = scoped.querySelectorAll('[data-toggle]'),
+			toggles_length = toggles.length;
 
-    $( '.event:checked' ).each( function( index, value ) {
-        $( value ).next( '.event-label-box' ).addClass( 'event-label-space' );
-        $( value ).next( '.event-label-box' ).css( 'display', 'block' );
-    } );
+		if (!toggles_length){ return; }
 
-    // Change Tooltip Text
-    $( '.toogle-seller' ).on( 'change', function() {
-        var tooltipText = $( this ).parents( '.switch' ).find( '.integration-tooltip' );
-        var text = $( tooltipText ).text().trim();
-        var newText = '';
+		for (var i = 0; i < toggles_length; i++) {
+			if (!toggles[i].checked){
+				hide_targets(toggles[i].getAttribute('data-toggle'));
+			}
 
-        if ( text == 'Activate' ) {
-            newText = 'Deactivate'
-        } else if( text == 'Deactivate' ) {
-           newText = 'Activate';
-        }
+			toggles[i].addEventListener('change', function(e){
+				var targets = scoped.querySelectorAll('[data-toggler='+e.target.getAttribute('data-toggle')+']'),
+					targets_length = targets.length;
 
-        $( tooltipText ).text( newText );
-    } );
+				if (!targets_length){ return; }
 
-})( jQuery );
+				for (var i = 0; i < targets_length; i++) {
+					targets[i].style.display = e.target.checked ? '' : 'none';
+				}
+			});
+		}
+	}
+
+	function hide_targets(target){
+		var targets = scoped.querySelectorAll('[data-toggler='+target+']'),
+			targets_length = targets.length;
+
+		if (!targets_length){ return; }
+
+		for (var i = 0; i < targets_length; i++) {
+			targets[i].style.display = 'none';
+		}
+	}
+});

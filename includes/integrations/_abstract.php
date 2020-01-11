@@ -31,12 +31,57 @@ abstract class Integration {
 	protected $events = array();
 
 	/**
-	 * Get settings fields
+	 * Set up our integration
+	 */
+	public function __construct() {
+		$this->add_settings_fields();
+	}
+
+	/**
+	 * Add any custom settings
 	 *
-	 * @return array
 	 * @since 0.1.0
 	 */
-	abstract public function get_settings_fields();
+	protected function add_settings_fields() {
+		add_action( 'cnvrsn_trckng_' . $this->id . '_render_settings_first', array( $this, 'add_settings_fields_first') );
+		add_action( 'cnvrsn_trckng_' . $this->id . '_render_settings_last', array( $this, 'add_settings_fields_last') );
+
+		add_filter( 'cnvrsn_trckng_sanitize_settings', array( $this, 'sanitize_settings_fields' ), 10, 2 );
+	}
+
+	/**
+	 * Settings Fields key (for convenience, because it's long)
+	 *
+	 * @param  string $suffix
+	 * @return string
+	 * @since 0.1.0
+	 */
+	public function settings_key( $suffix ) {
+		return esc_attr( 'cnvrsn_trckng_settings[integrations][' . $this->id . ']' . $suffix );
+	}
+
+	/**
+	 * Add any custom settings before the events list
+	 *
+	 * @since 0.1.0
+	 */
+	public function add_settings_fields_first() {}
+
+	/**
+	 * Add any custom settings after the events list
+	 *
+	 * @since 0.1.0
+	 */
+	public function add_settings_fields_last() {}
+
+	/**
+	 * For any added settings, we must have a sanitizer function or they won't be saved
+	 *
+	 * @since 0.1.0
+	 */
+	public function sanitize_settings_fields( $cleaned, $saved ) {
+		return $cleaned;
+	}
 
 	/**
 	 * Enqueue necessary scripts
@@ -44,7 +89,7 @@ abstract class Integration {
 	 * @return void
 	 * @since 0.1.0
 	 */
-	abstract public function enqueue_script();
+	public function enqueue_script() {}
 
 	/**
 	 * Get the ID/slug
@@ -73,7 +118,10 @@ abstract class Integration {
 	 * @since 0.1.0
 	 */
 	public function get_events() {
-		return apply_filters( 'cnvrsn_trckng_' . $this->id . '_supported_events', $this->events );
+		$integration_events = apply_filters( 'cnvrsn_trckng_' . $this->id . '_supported_events', $this->events );
+		$supported_events = array_keys( Events\supported_events() );
+
+		return array_intersect( $supported_events, $integration_events );
 	}
 
 	/**
@@ -85,11 +133,7 @@ abstract class Integration {
 	public function is_enabled() {
 		$settings = $this->get_plugin_settings();
 
-		if ( $settings && $settings[ 'enabled' ] == true ) {
-			return true;
-		}
-
-		return false;
+		return ( $settings && $settings['enabled'] === true );
 	}
 
 	/**
@@ -117,10 +161,10 @@ abstract class Integration {
 	 * @since 0.1.0
 	 */
 	protected function get_plugin_settings() {
-		$integration_settings = get_option( 'cnvrsn_settings', array() );
+		$integration_settings = Admin\get_settings();
 
-		if ( isset( $integration_settings[ $this->id ] ) ) {
-			return $integration_settings[ $this->id ];
+		if ( isset( $integration_settings['integrations'][$this->id] ) ) {
+			return $integration_settings['integrations'][$this->id];
 		}
 
 		return false;

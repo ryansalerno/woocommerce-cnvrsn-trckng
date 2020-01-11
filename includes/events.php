@@ -23,19 +23,32 @@ function setup() {
  * @return array
  * @since 0.1.0
  */
-function suppported_events() {
+function supported_events() {
 	$default_events = array(
-		'product_view',
-		'category_view',
-		'add_to_cart',
-		'start_checkout',
-		'purchase',
-		'registration',
-		'search',
-		'wishlist',
+		'product_view' => esc_html__( 'Product View', 'woocommerce-cnvrsn-trckng' ),
+		'category_view' => esc_html__( 'Category View', 'woocommerce-cnvrsn-trckng' ),
+		'add_to_cart' => esc_html__( 'Add to Cart', 'woocommerce-cnvrsn-trckng' ),
+		'start_checkout' => esc_html__( 'Start Checkout', 'woocommerce-cnvrsn-trckng' ),
+		'purchase' => esc_html__( 'Successful Purchase', 'woocommerce-cnvrsn-trckng' ),
+		'registration' => esc_html__( 'User Registration', 'woocommerce-cnvrsn-trckng' ),
+		'search' => esc_html__( 'Search', 'woocommerce-cnvrsn-trckng' ),
+		'wishlist' => esc_html__( 'Add to Wishlist', 'woocommerce-cnvrsn-trckng' ),
 	);
 
 	return apply_filters( 'cnvrsn_trckng_supported_events', $default_events );
+}
+
+/**
+ * Return an event's text label
+ *
+ * @param  string $event
+ * @return string
+ * @since 0.1.0
+ */
+function get_event_label( $event ) {
+	$events = supported_events();
+
+	return isset( $events[$event] ) ? $events[$event] : $event;
 }
 
 /**
@@ -236,22 +249,46 @@ function get_purchase_data( $order_id ) {
 
 	$data = array();
 
-	$data['currency']       = $backcompat ? $order->get_order_currency() : $order->get_currency();
-	$data['order_number']   = $order->get_order_number();
-	$data['order_total']    = $order->get_total() ? $order->get_total() : 0;
-	$data['order_subtotal'] = $order->get_subtotal();
-	$data['order_discount'] = $order->get_total_discount();
-	$data['order_shipping'] = $order->get_total_shipping();
-	$data['payment_method'] = $backcompat ? $order->payment_method : $order->get_payment_method();
-	$data['used_coupons']   = $order->get_used_coupons() ? implode( ',', $order->get_used_coupons() ) : '';
+	$currency       = $backcompat ? $order->get_order_currency() : $order->get_currency();
+	$order_number   = $order->get_order_number();
+	$order_total    = $order->get_total() ? $order->get_total() : 0;
+	$order_subtotal = $order->get_subtotal();
+	$order_discount = $order->get_total_discount();
+	$order_shipping = $order->get_total_shipping();
+	$payment_method = $backcompat ? $order->payment_method : $order->get_payment_method();
+	$used_coupons   = $order->get_used_coupons() ? implode( ',', $order->get_used_coupons() ) : '';
 
 	$customer = $order->get_user();
 	if ( $customer ) {
-		$data['customer_id']         =  $customer->ID;
-		$data['customer_email']      =  $customer->user_email;
-		$data['customer_first_name'] =  $customer->first_name;
-		$data['customer_last_name']  =  $customer->last_name;
+		$customer_id         =  $customer->ID;
+		$customer_email      =  $customer->user_email;
+		$customer_first_name =  $customer->first_name;
+		$customer_last_name  =  $customer->last_name;
+	}
+
+	$replacement_keys = get_replacement_keys( 'purchase' );
+	foreach ( $replacement_keys as $key ) {
+		if ( isset( $$key ) ) { $data[$key] = $$key; }
 	}
 
 	return $data;
+}
+
+/**
+ * Return valid keys for per-event replacement data
+ *
+ * @param  string $event
+ * @return array
+ * @since 0.1.0
+ */
+function get_replacement_keys( $event ) {
+	$keys = array();
+
+	switch ($event) {
+		case 'purchase':
+			$keys = array('currency', 'order_number', 'order_total', 'order_subtotal', 'order_discount', 'order_shipping', 'payment_method', 'used_coupons', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name');
+			break;
+	}
+
+	return $keys;
 }
