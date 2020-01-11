@@ -204,6 +204,8 @@ function get_settings() {
  * @return array
  * @since  0.1.0
  */
+// NOTE: we may someday want to have some more complicated default settings above....
+/*
 function meks_wp_parse_args( &$a, $b ) {
 	$a = (array) $a;
 	$b = (array) $b;
@@ -217,6 +219,7 @@ function meks_wp_parse_args( &$a, $b ) {
 	}
 	return $result;
 }
+*/
 
 /**
  * Output setting menu option
