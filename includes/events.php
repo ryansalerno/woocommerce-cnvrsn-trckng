@@ -166,7 +166,7 @@ function track_registration() {
  * @since 0.1.0
  */
 function complete_registration() {
-	dispatch_event( 'registration' );
+	dispatch_event( 'registration', get_user_data() );
 }
 
 /**
@@ -275,6 +275,33 @@ function get_purchase_data( $order_id ) {
 }
 
 /**
+ * Fetch a bunch of user-related data for inclusion into the script
+ *
+ * @return array
+ * @since 0.1.0
+ */
+function get_user_data() {
+	$data = array();
+
+	$current_user = wp_get_current_user();
+	if ( ! ( $current_user instanceof WP_User ) ) { return $data; }
+
+	$customer_id = $current_user->ID;
+	$customer_email = $current_user->user_email;
+	$customer_first_name = esc_html( $current_user->user_firstname );
+	$customer_last_name = esc_html( $current_user->user_lastname );
+	// $customer_username = esc_html( $current_user->user_login );
+	// $customer_display_name = esc_html( $current_user->display_name );
+
+	$replacement_keys = get_replacement_keys( 'registration' );
+	foreach ( $replacement_keys as $key ) {
+		if ( isset( $$key ) ) { $data[$key] = $$key; }
+	}
+
+	return $data;
+}
+
+/**
  * Return valid keys for per-event replacement data
  *
  * @param  string $event
@@ -287,6 +314,9 @@ function get_replacement_keys( $event ) {
 	switch ($event) {
 		case 'purchase':
 			$keys = array('currency', 'order_number', 'order_total', 'order_subtotal', 'order_discount', 'order_shipping', 'payment_method', 'used_coupons', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name');
+			break;
+		case 'registration':
+			$keys = array('customer_id', 'customer_email', 'customer_first_name', 'customer_last_name');
 			break;
 	}
 
