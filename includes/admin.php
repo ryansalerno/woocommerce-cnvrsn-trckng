@@ -128,7 +128,7 @@ function integration_events_cb( $args ) {
 	$checkboxen = array();
 	foreach ( (array) $events as $event ) {
 		$checkboxen[] = '<label>' .
-			'<input type="checkbox" name="' . $key . '[' . esc_attr( $event ) . ']' . '" ' . checked( $args['integration']->event_enabled( $event ) ) . ' data-toggle="' . esc_attr( $id . '-' . $event ) . '"/>' .
+			'<input type="checkbox" name="' . $key . '[' . esc_attr( $event ) . ']' . '" ' . checked( $args['integration']->event_enabled( $event ), true, false ) . ' data-toggle="' . esc_attr( $id . '-' . $event ) . '"/>' .
 			Events\get_event_label( $event ) .
 		'</label>';
 	}
