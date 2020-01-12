@@ -85,7 +85,7 @@ function get_event_label( $event ) {
 function add_actions() {
 	if ( empty( IntegrationManager::active_integrations() ) ) { return; }
 
-	add_action( 'wp_footer', __NAMESPACE__ . '\enqueue_scripts' );
+	add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\enqueue_scripts' );
 
 	$active_events = active_events();
 
@@ -280,18 +280,7 @@ function enqueue_scripts() {
 
 	foreach ( $active as $integration ) {
 		$output = $integration->enqueue_script();
-		if ( ! $output ) { continue; }
-
-		$scripts[ $integration->get_id() ] = $output;
 	}
-
-	if ( empty( $scripts ) ) { return; }
-
-	?>
-	<!-- Begin: WooCommerce Cnvrsn Trckng -->
-	<?php echo implode( PHP_EOL, apply_filters( 'cnvrsn_trckng_enqueued_scripts', $scripts ) ); ?>
-	<!-- End: WooCommerce Cnvrsn Trckng -->
-	<?php
 }
 
 /**

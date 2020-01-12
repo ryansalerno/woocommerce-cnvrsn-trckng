@@ -40,6 +40,10 @@ abstract class Integration {
 	 */
 	public function __construct() {
 		$this->add_settings_fields();
+
+		if ( isset( $this->asyncs ) || isset( $this->defers ) ) {
+			add_filter( 'script_loader_tag', array( $this, 'asyncdefer_script' ), 10, 2 );
+		}
 	}
 
 	/**
@@ -97,6 +101,26 @@ abstract class Integration {
 	 * @since 0.1.0
 	 */
 	public function enqueue_script() {}
+
+	/**
+	 * Add async/defer to our enqueues for great justice
+	 *
+	 * @param  string $tag The script tag to be output to the page
+	 * @param  string $handle An enqueued handle whose performance we'd like to optimize
+	 * @return string $tag Our possibly filtered script tag
+	 * @since 0.1.0
+	 */
+	public function asyncdefer_script( $tag, $handle ) {
+		if ( in_array( $handle, $this->defers, true ) ) {
+			$tag = str_replace( '<script ', '<script defer ', $tag );
+		}
+
+		if ( in_array( $handle, $this->asyncs, true ) ) {
+			$tag = str_replace( '<script ', '<script async ', $tag );
+		}
+
+		return $tag;
+	}
 
 	/**
 	 * Get the ID/slug

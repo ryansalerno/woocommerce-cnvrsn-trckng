@@ -20,6 +20,8 @@ class GoogleAdsIntegration extends Integration {
 		$this->events = array(
 			'purchase',
 		);
+		$this->asyncs = array( 'cnvrsn-trckng-' . $this->id );
+		$this->defers = array( 'cnvrsn-trckng-' . $this->id );
 
 		parent::__construct();
 	}
@@ -141,15 +143,14 @@ class GoogleAdsIntegration extends Integration {
 		$account_id = $this->get_plugin_settings( 'account_id' );
 		if ( ! $account_id ) { return; }
 
-		$script  = '<script async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $account_id ) . '"></script>';
-		$script .= '<script>' .
+		wp_enqueue_script( 'cnvrsn-trckng-' . $this->id, 'https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $account_id ), array(), CNVRSN_VERSION, true );
+		$script =
 			'window.dataLayer = window.dataLayer || [];' .
 			'function gtag(){dataLayer.push(arguments)};' .
 			'gtag("js", new Date());' .
-			'gtag("config", "' . esc_js( $account_id ) . '");' .
-		'</script>';
+			'gtag("config", "' . esc_js( $account_id ) . '");';
 
-		return $script;
+		wc_enqueue_js( $script );
 	}
 
 	/**
