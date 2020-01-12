@@ -139,7 +139,7 @@ class GoogleAdsIntegration extends Integration {
 			'window.dataLayer = window.dataLayer || [];'.
 			'function gtag(){dataLayer.push(arguments)};'.
 			'gtag("js", new Date());'.
-			'gtag("config", "' . esc_attr( $account_id ) . '");'.
+			'gtag("config", "' . esc_js( $account_id ) . '");'.
 		'</script>';
 
 		return $script;
