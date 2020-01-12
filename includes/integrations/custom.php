@@ -14,6 +14,7 @@ class CustomIntegration extends Integration {
 		$this->name     = __( 'Custom', 'woocommerce-cnvrsn-trckng' );
 		$this->events = array(
 			'purchase',
+			'product_view',
 			'registration'
 		);
 

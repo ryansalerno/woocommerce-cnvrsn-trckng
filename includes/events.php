@@ -68,7 +68,7 @@ function add_actions() {
 	add_action( 'woocommerce_after_shop_loop', __NAMESPACE__ . '\category_view' );
 
 	// cart and checkout
-	add_action( 'woocommerce_add_to_cart', __NAMESPACE__ . '\add_to_cart', 9999, 4 );
+	add_action( 'woocommerce_add_to_cart', __NAMESPACE__ . '\add_to_cart', 9999, 6 );
 	add_action( 'woocommerce_after_checkout_form', __NAMESPACE__ . '\start_checkout' );
 
 	// purchase
@@ -89,10 +89,20 @@ function add_actions() {
 /**
  * Do add to cart event
  *
+ * @param  string $cart_item_key
+ * @param  int $product_id
+ * @param  int $quantity
+ * @param  int $variation_id
+ * @param  object $variation
+ * @param  object $cart_item_data
  * @since 0.1.0
  */
-function add_to_cart() {
-	dispatch_event( 'add_to_cart' );
+function add_to_cart( $cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ) {
+	$product_data = get_product_data( $product_id, $variation_id );
+	$cart_data = array(
+		'qty' => $quantity,
+	);
+	dispatch_event( 'add_to_cart', array_merge( $product_data, $cart_data ) );
 }
 
 /**
@@ -120,7 +130,7 @@ function purchase( $order_id ) {
  * @since 0.1.0
  */
 function product_view() {
-	dispatch_event( 'product_view' );
+	dispatch_event( 'product_view', get_product_data( get_the_ID() ) );
 }
 
 /**
@@ -223,7 +233,10 @@ function enqueue_scripts() {
 	$scripts = array();
 
 	foreach ( $active as $integration ) {
-		$scripts[ $integration->get_id() ] = $integration->enqueue_script();
+		$output = $integration->enqueue_script();
+		if ( ! $output ) { continue; }
+
+		$scripts[ $integration->get_id() ] = $output;
 	}
 
 	if ( empty( $scripts ) ) { return; }
@@ -252,7 +265,7 @@ function get_purchase_data( $order_id ) {
 	// this overkill feels better than repeating the fetching code everywhere,
 	// but is less efficient than getting the minimal amount of data
 
-	$backcompat = version_compare( WC()->version, '3.0', '<' );
+	$backcompat = version_compare( WC_VERSION, '3.0', '<' );
 
 	$data = array();
 
@@ -273,7 +286,7 @@ function get_purchase_data( $order_id ) {
 		$customer_last_name  =  $customer->last_name;
 	}
 
-	$replacement_keys = get_replacement_keys( 'purchase' );
+	$replacement_keys = get_replacement_keys( 'order' );
 	foreach ( $replacement_keys as $key ) {
 		if ( isset( $$key ) ) { $data[$key] = $$key; }
 	}
@@ -300,7 +313,55 @@ function get_user_data() {
 	// $customer_username = esc_html( $current_user->user_login );
 	// $customer_display_name = esc_html( $current_user->display_name );
 
-	$replacement_keys = get_replacement_keys( 'registration' );
+	$replacement_keys = get_replacement_keys( 'customer' );
+	foreach ( $replacement_keys as $key ) {
+		if ( isset( $$key ) ) { $data[$key] = $$key; }
+	}
+
+	return $data;
+}
+
+/**
+ * Fetch a bunch of product-related data for inclusion into the script
+ *
+ * @param  object $pid
+ * @param  string $vid
+ * @return array
+ * @since 0.1.0
+ */
+function get_product_data( $pid, $vid = '' ) {
+	$data = array();
+
+	$product = wc_get_product( $vid  ? $vid : $pid );
+	if ( ! is_a( $product, 'WC_Product' ) ) { return $data; }
+
+	$backcompat     = version_compare( WC_VERSION, '3.0', '<' );
+
+	$product_id     = $product->get_sku() ? $product->get_sku() : $product->get_id();
+	$product_name   = $product->get_name();
+	$product_price  = $product->get_price();
+
+	$_cats          = array();
+	$variation_data = $backcompat ? $product->variation_data : ( $product->is_type( 'variation' ) ? wc_get_product_variation_attributes( $product->get_id() ) : '' );
+
+	if ( is_array( $variation_data ) && ! empty( $variation_data ) ) {
+		$product_variation = wc_get_formatted_variation( $variation_data, true );
+
+		$parent_product    = wc_get_product( $backcompat ? $product->parent->id : $product->get_parent_id() );
+		$categories        = get_the_terms( $parent_product->get_id(), 'product_cat' );
+	} else {
+		$categories        = get_the_terms( $product->get_id(), 'product_cat' );
+	}
+
+	if ( $categories ) {
+		foreach ( $categories as $category ) {
+			$_cats[] = $category->name;
+		}
+	}
+
+	$product_category = implode( '/', $_cats );
+
+	$replacement_keys = get_replacement_keys( 'product' );
 	foreach ( $replacement_keys as $key ) {
 		if ( isset( $$key ) ) { $data[$key] = $$key; }
 	}
@@ -318,12 +379,23 @@ function get_user_data() {
 function get_replacement_keys( $event ) {
 	$keys = array();
 
+	// we primarily want to include event names for use in \Admin\get_replacement_help_text()
+	// but will also sometimes include shorthand for a shared get_foo_data() call above
 	switch ($event) {
+		case 'add_to_cart':
+		case 'product':
+			$keys = array( 'product_id', 'product_name', 'product_price', 'product_category', 'product_variation' );
+			break;
+		case 'product_view':
+			$keys = array( 'product_id', 'product_name', 'product_price', 'product_category' );
+			break;
 		case 'purchase':
-			$keys = array('currency', 'order_number', 'order_total', 'order_subtotal', 'order_discount', 'order_shipping', 'payment_method', 'used_coupons', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name');
+		case 'order':
+			$keys = array( 'currency', 'order_number', 'order_total', 'order_subtotal', 'order_discount', 'order_shipping', 'payment_method', 'used_coupons', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
 			break;
 		case 'registration':
-			$keys = array('customer_id', 'customer_email', 'customer_first_name', 'customer_last_name');
+		case 'customer':
+			$keys = array( 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
 			break;
 	}
 
