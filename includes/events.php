@@ -6,6 +6,7 @@
  * @package WooCommerce_Cnvrsn_Trckng
  */
 namespace CnvrsnTrckng\Events;
+use CnvrsnTrckng\Admin;
 use CnvrsnTrckng\IntegrationManager;
 
 /**
@@ -39,6 +40,30 @@ function supported_events() {
 }
 
 /**
+ * Get (unique) enabled events
+ *
+ * @return array
+ * @since  0.1.0
+ */
+function active_events() {
+	$settings = Admin\get_settings();
+
+	$enabled = array();
+
+	if ( ! isset( $settings['integrations'] ) ) { return $enabled; }
+
+	foreach ( $settings['integrations'] as $integration ) {
+		if ( ! isset( $integration['events'] ) ) { continue; }
+
+		foreach ( $integration['events'] as $event => $bool ) {
+			if ( $bool ) { $enabled[$event] = 1; }
+		}
+	}
+
+	return $enabled;
+}
+
+/**
  * Return an event's text label
  *
  * @param  string $event
@@ -61,29 +86,45 @@ function add_actions() {
 
 	add_action( 'wp_footer', __NAMESPACE__ . '\enqueue_scripts' );
 
-	// TODO: conditionally add actions here only when we know they're going to fire
+	$active_events = active_events();
 
 	// view
-	add_action( 'woocommerce_after_single_product', __NAMESPACE__ . '\product_view' );
-	add_action( 'woocommerce_after_shop_loop', __NAMESPACE__ . '\category_view' );
+	if ( isset( $active_events['product_view'] ) ) {
+		add_action( 'woocommerce_after_single_product', __NAMESPACE__ . '\product_view' );
+	}
+	if ( isset( $active_events['category_view'] ) ) {
+		add_action( 'woocommerce_after_shop_loop', __NAMESPACE__ . '\category_view' );
+	}
 
 	// cart and checkout
-	add_action( 'woocommerce_add_to_cart', __NAMESPACE__ . '\add_to_cart', 9999, 6 );
-	add_action( 'woocommerce_after_checkout_form', __NAMESPACE__ . '\start_checkout' );
+	if ( isset( $active_events['add_to_cart'] ) ) {
+		add_action( 'woocommerce_add_to_cart', __NAMESPACE__ . '\add_to_cart', 9999, 6 );
+	}
+	if ( isset( $active_events['start_checkout'] ) ) {
+		add_action( 'woocommerce_after_checkout_form', __NAMESPACE__ . '\start_checkout' );
+	}
 
 	// purchase
-	add_action( 'woocommerce_thankyou', __NAMESPACE__ . '\purchase' );
+	if ( isset( $active_events['purchase'] ) ) {
+		add_action( 'woocommerce_thankyou', __NAMESPACE__ . '\purchase' );
+	}
 
 	// registration
-	add_action( 'woocommerce_registration_redirect', __NAMESPACE__ . '\wc_redirect_url' );
-	add_action( 'template_redirect', __NAMESPACE__ . '\track_registration' );
+	if ( isset( $active_events['registration'] ) ) {
+		add_action( 'woocommerce_registration_redirect', __NAMESPACE__ . '\wc_redirect_url' );
+		add_action( 'template_redirect', __NAMESPACE__ . '\track_registration' );
+	}
 
 	// search
-	add_action( 'pre_get_posts', __NAMESPACE__ . '\search' );
+	if ( isset( $active_events['search'] ) ) {
+		add_action( 'pre_get_posts', __NAMESPACE__ . '\search' );
+	}
 
 	// wishlist
-	add_filter( 'yith_wcwl_added_to_wishlist', __NAMESPACE__ . '\wishlist' );
-	add_action( 'woocommerce_wishlist_add_item', __NAMESPACE__ . '\wishlist' );
+	if ( isset( $active_events['wishlist'] ) ) {
+		add_filter( 'yith_wcwl_added_to_wishlist', __NAMESPACE__ . '\wishlist' );
+		add_action( 'woocommerce_wishlist_add_item', __NAMESPACE__ . '\wishlist' );
+	}
 }
 
 /**
