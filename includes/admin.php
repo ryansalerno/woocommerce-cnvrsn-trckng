@@ -170,8 +170,13 @@ function sanitize_integration_settings( $settings ) {
 	if ( ! isset( $settings['integrations'] ) ) { return $new_settings; }
 
 	foreach ( $settings['integrations'] as $id => $integration ) {
-		@$new_settings['integrations'][$id]['enabled'] = ( isset( $integration['enabled'] ) && $integration['enabled'] );
+		@$new_settings['integrations'][$id]['enabled'] = ( isset( $integration['enabled'] ) && $integration['enabled'] === 'on' );
 
+		if ( isset( $new_settings['integrations'][$id]['events'] ) && is_array( $new_settings['integrations'][$id]['events'] ) ) {
+			foreach ( $new_settings['integrations'][$id]['events'] as $event => $enabled ) {
+				@$new_settings['integrations'][$id]['events'][$event] = ( isset( $integration['events'] ) && isset( $integration['events'][$event] ) && $integration['events'][$event] === 'on' ) ? true : false;
+			}
+		}
 		if ( isset( $integration['events'] ) && is_array( $integration['events'] ) ) {
 			foreach ( $integration['events'] as $event => $enabled ) {
 				@$new_settings['integrations'][$id]['events'][$event] = $enabled ? true : false;
