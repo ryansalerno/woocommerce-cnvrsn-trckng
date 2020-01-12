@@ -1,11 +1,12 @@
 <?php
-
 /**
  * Admin functions
  *
  * @package WooCommerce_Cnvrsn_Trckng
  */
+
 namespace CnvrsnTrckng\Admin;
+
 use CnvrsnTrckng\IntegrationManager;
 use CnvrsnTrckng\Events;
 
@@ -35,15 +36,15 @@ function add_actions() {
 /**
  * Register setting fields and sections
  *
- * @since  0.1.0
+ * @since 0.1.0
  */
 function register_settings() {
 	register_setting(
 		'woocommerce-cnvrsn-trckng',
 		'cnvrsn_trckng_settings',
 		array(
-			'type' => 'array',
-			'sanitize_callback' => __NAMESPACE__ . '\sanitize_integration_settings'
+			'type'              => 'array',
+			'sanitize_callback' => __NAMESPACE__ . '\sanitize_integration_settings',
 		)
 	);
 
@@ -60,7 +61,7 @@ function register_settings() {
 /**
  * Loop through our integrations and output their settings boxes
  *
- * @since  0.1.0
+ * @since 0.1.0
  */
 function make_integration_sections() {
 	foreach ( IntegrationManager::all_integrations() as $integration ) {
@@ -68,7 +69,7 @@ function make_integration_sections() {
 
 		add_settings_field(
 			'cnvrsn_trckng_settings[integrations][' . $id . '][enabled]',
-			esc_html__( $integration->get_name(), 'woocommerce-cnvrsn-trckng' ),
+			esc_html( $integration->get_name() ),
 			__NAMESPACE__ . '\integration_enabled_cb',
 			'conversion-tracking',
 			'cnvrsn-integrations',
@@ -97,17 +98,20 @@ function make_integration_sections() {
 /**
  * This is a toggle, but it also is meant to appear as the header to a box that will open when it's enabled
  *
- * @since  0.1.0
+ * @param array $args WP lets us pass arbitrary data to our callbacks
+ * @since 0.1.0
  */
 function integration_enabled_cb( $args ) {
 	$id   = $args['integration']->get_id();
 	$key  = 'cnvrsn_trckng_settings[integrations][' . $id . '][enabled]';
-	$icon = dirname( __DIR__ ) . '/assets/images/'. $id .'.svg';
+	$icon = dirname( __DIR__ ) . '/assets/images/' . $id . '.svg';
 	?>
 	<label class="integration-header">
-		<?php if ( is_file( $icon ) ) { echo file_get_contents( $icon ); } ?>
-		<h3><?php echo sanitize_text_field( $args['integration']->get_name() ); ?></h3>
-		<input type="checkbox" class="toggler" name="<?php echo $key; ?>" data-toggle="<?php echo esc_attr( $id ); ?>" <?php checked( $args['integration']->is_enabled() ); ?>/>
+		<?php if ( is_file( $icon ) ) : ?>
+			<img src="<?php echo esc_url( plugins_url( '/assets/images/' . $id . '.svg', CNVRSN_FILE ) ); ?>" alt="<?php echo esc_attr( $args['integration']->get_name() ); ?>"/>
+		<?php endif; ?>
+		<h3><?php echo esc_html( $args['integration']->get_name() ); ?></h3>
+		<input type="checkbox" class="toggler" name="<?php echo esc_attr( $key ); ?>" data-toggle="<?php echo esc_attr( $id ); ?>" <?php checked( $args['integration']->is_enabled() ); ?>/>
 		<span class="toggle"><span class="tooltip"></span></span>
 	</label>
 	<?php
@@ -116,7 +120,8 @@ function integration_enabled_cb( $args ) {
 /**
  * Output our event checkboxes
  *
- * @since  0.1.0
+ * @param array $args WP lets us pass arbitrary data to our callbacks
+ * @since 0.1.0
  */
 function integration_events_cb( $args ) {
 	$events = $args['integration']->get_events();
@@ -124,18 +129,17 @@ function integration_events_cb( $args ) {
 
 	$id  = $args['integration']->get_id();
 	$key = 'cnvrsn_trckng_settings[integrations][' . $id . '][events]';
-
-	$checkboxen = array();
-	foreach ( (array) $events as $event ) {
-		$checkboxen[] = '<label>' .
-			'<input type="checkbox" name="' . $key . '[' . esc_attr( $event ) . ']' . '" ' . checked( $args['integration']->event_enabled( $event ), true, false ) . ' data-toggle="' . esc_attr( $id . '-' . $event ) . '"/>' .
-			Events\get_event_label( $event ) .
-		'</label>';
-	}
 	?>
 	<h3><?php echo esc_html__( 'Supported Events:', 'woocommerce-cnvrsn-trckng' ); ?></h3>
 	<ul class="event-checkboxes">
-		<li><?php echo implode( '</li><li>', $checkboxen ); ?></li>
+		<?php foreach ( (array) $events as $event ) : ?>
+			<li>
+				<label>
+					<input type="checkbox" name="<?php echo esc_attr( $key . '[' . $event . ']' ); ?>" <?php checked( $args['integration']->event_enabled( $event ), true ); ?> data-toggle="<?php echo esc_attr( $id . '-' . $event ); ?>"/>
+					<?php echo esc_html( Events\get_event_label( $event ) ); ?>
+				</label>
+			</li>
+		<?php endforeach; ?>
 	</ul>
 	<?php
 }
@@ -143,43 +147,46 @@ function integration_events_cb( $args ) {
 /**
  * Get all replacement keys for an event and format them as help text
  *
- * @param  string $event
+ * @param  string $event An event type slug
  * @return string
- * @since  0.1.0
+ * @since 0.1.0
  */
-function get_replacement_help_text( $event ){
+function get_replacement_help_text( $event ) {
 	$keys = Events\get_replacement_keys( $event );
 	if ( empty( $keys ) ) { return; }
 
-	$replacements = array_map(function($key){
-		return '<code>{' . $key . '}</code>';
-	}, $keys);
+	$replacements = array_map(
+		function( $key ) {
+			return '<code>{' . $key . '}</code>';
+		},
+		$keys
+	);
 
-	return '<p class="help replacements">' . esc_html__( 'Dynamic replacement tags:', 'woocommerce-convrsn-trckng' ) . ' ' . implode( ', ', $replacements ) . '</p>';
+	return '<p class="help replacements">' . __( 'Dynamic replacement tags:', 'woocommerce-convrsn-trckng' ) . ' ' . implode( ', ', $replacements ) . '</p>';
 }
 
 /**
  * Sanitize settings for DB
  *
  * @param  array $settings Array of settings.
- * @since  0.1.0
+ * @since 0.1.0
  */
 function sanitize_integration_settings( $settings ) {
-	$new_settings = get_settings();
+	$new_settings = get_settings(); // phpcs:ignore
 
 	if ( ! isset( $settings['integrations'] ) ) { return $new_settings; }
 
 	foreach ( $settings['integrations'] as $id => $integration ) {
-		@$new_settings['integrations'][$id]['enabled'] = ( isset( $integration['enabled'] ) && $integration['enabled'] === 'on' );
+		@$new_settings['integrations'][ $id ]['enabled'] = ( isset( $integration['enabled'] ) && 'on' === $integration['enabled'] );
 
-		if ( isset( $new_settings['integrations'][$id]['events'] ) && is_array( $new_settings['integrations'][$id]['events'] ) ) {
-			foreach ( $new_settings['integrations'][$id]['events'] as $event => $enabled ) {
-				@$new_settings['integrations'][$id]['events'][$event] = ( isset( $integration['events'] ) && isset( $integration['events'][$event] ) && $integration['events'][$event] === 'on' ) ? true : false;
+		if ( isset( $new_settings['integrations'][ $id ]['events'] ) && is_array( $new_settings['integrations'][ $id ]['events'] ) ) {
+			foreach ( $new_settings['integrations'][ $id ]['events'] as $event => $enabled ) {
+				@$new_settings['integrations'][ $id ]['events'][ $event ] = ( isset( $integration['events'] ) && isset( $integration['events'][ $event ] ) && 'on' === $integration['events'][ $event ] ) ? true : false;
 			}
 		}
 		if ( isset( $integration['events'] ) && is_array( $integration['events'] ) ) {
 			foreach ( $integration['events'] as $event => $enabled ) {
-				@$new_settings['integrations'][$id]['events'][$event] = $enabled ? true : false;
+				@$new_settings['integrations'][ $id ]['events'][ $event ] = $enabled ? true : false;
 			}
 		}
 	}
@@ -191,7 +198,7 @@ function sanitize_integration_settings( $settings ) {
  * Get plugin settings (with defaults)
  *
  * @return array
- * @since  0.1.0
+ * @since 0.1.0
  */
 function get_settings() {
 	$defaults = array(
@@ -203,33 +210,9 @@ function get_settings() {
 }
 
 /**
- * wp_parse_args(), but multidimensional
- * https://mekshq.com/recursive-wp-parse-args-wordpress-function/
- *
- * @return array
- * @since  0.1.0
- */
-// NOTE: we may someday want to have some more complicated default settings above....
-/*
-function meks_wp_parse_args( &$a, $b ) {
-	$a = (array) $a;
-	$b = (array) $b;
-	$result = $b;
-	foreach ( $a as $k => &$v ) {
-		if ( is_array( $v ) && isset( $result[ $k ] ) ) {
-			$result[ $k ] = meks_wp_parse_args( $v, $result[ $k ] );
-		} else {
-			$result[ $k ] = $v;
-		}
-	}
-	return $result;
-}
-*/
-
-/**
  * Output setting menu option
  *
- * @since  0.1.0
+ * @since 0.1.0
  */
 function admin_menu() {
 	add_submenu_page(
@@ -266,7 +249,7 @@ function settings_screen() {
  * Enqueue admin scripts/styles for settings
  *
  * @param  string $hook WP hook.
- * @since  0.1.0
+ * @since 0.1.0
  */
 function admin_enqueue_scripts( $hook ) {
 	wp_enqueue_style( 'cnvrsn-admin', plugins_url( '/assets/css/admin.css', __DIR__ ), array(), CNVRSN_VERSION );
@@ -276,9 +259,9 @@ function admin_enqueue_scripts( $hook ) {
 /**
  * Show a helpful Settings link in the plugin row
  *
- * @param  array $links
+ * @param  array $links Array of links to display
  * @return array
- * @since  0.1.0
+ * @since 0.1.0
  */
 function plugin_action_links( $links ) {
 	$links[] = '<a href="' . admin_url( 'admin.php?page=conversion-tracking' ) . '">' . __( 'Settings', 'woocommerce-cnvrsn-trckng' ) . '</a>';
@@ -289,11 +272,11 @@ function plugin_action_links( $links ) {
 /**
  * Let everyone know we aren't going to be useful without WooCommerce
  *
- * @since  0.1.0
+ * @since 0.1.0
  */
 function check_woocommerce_is_activated() {
 	if ( ! class_exists( 'woocommerce' ) ) {
-		notice('<strong>Woocommerce Cnvrsn Trckng</strong> requires Woocommerce.', 'error');
+		notice( __( '<strong>Woocommerce Cnvrsn Trckng</strong> requires Woocommerce.', 'woocommerce-cnvrsn-trckng' ), 'error' );
 		force_deactivate();
 	}
 }
@@ -302,32 +285,32 @@ function check_woocommerce_is_activated() {
  * Turn ourselves off
  *
  * @return void
- * @since  0.1.0
+ * @since 0.1.0
  */
-function force_deactivate(){
-	require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+function force_deactivate() {
+	require_once ABSPATH . '/wp-admin/includes/plugin.php';
 	deactivate_plugins( plugin_basename( CNVRSN_FILE ) );
-	if ( isset( $_GET['activate'] ) ){ unset( $_GET['activate'] ); }
+	if ( isset( $_GET['activate'] ) ) { unset( $_GET['activate'] ); }
 	return;
 }
 
 /**
  * Display an admin notice
  *
- * @param  string $text The notice we want displayed
- * @param  string $type The type of notice (e.g. error, warning, updated, info)
+ * @param  string  $text The notice we want displayed
+ * @param  string  $type The type of notice (e.g. error, warning, updated, info)
  * @param  boolean $dismissable Whether the notice is dismissable
  * @return void
- * @since  0.1.0
+ * @since 0.1.0
  */
 function notice( $text, $type = 'info', $dismissable = true ) {
 	$classes = 'notice ' . $type;
-	if ($dismissable){
+	if ( $dismissable ) {
 		$classes .= ' is-dismissible';
 	}
 	?>
 	<div class="<?php echo esc_attr( $classes ); ?>">
-		<p><?php echo wp_kses( __( $text, 'woocommerce-cnvrsn-trckng' ), 'post' );?></p>
+		<p><?php echo wp_kses( $text, 'post' ); ?></p>
 	</div>
 	<?php
 }

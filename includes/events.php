@@ -1,11 +1,12 @@
 <?php
-
 /**
  * Manage and dispatch events
  *
  * @package WooCommerce_Cnvrsn_Trckng
  */
+
 namespace CnvrsnTrckng\Events;
+
 use CnvrsnTrckng\Admin;
 use CnvrsnTrckng\IntegrationManager;
 
@@ -26,14 +27,14 @@ function setup() {
  */
 function supported_events() {
 	$default_events = array(
-		'product_view' => esc_html__( 'Product View', 'woocommerce-cnvrsn-trckng' ),
-		'category_view' => esc_html__( 'Category View', 'woocommerce-cnvrsn-trckng' ),
-		'add_to_cart' => esc_html__( 'Add to Cart', 'woocommerce-cnvrsn-trckng' ),
-		'start_checkout' => esc_html__( 'Start Checkout', 'woocommerce-cnvrsn-trckng' ),
-		'purchase' => esc_html__( 'Successful Purchase', 'woocommerce-cnvrsn-trckng' ),
-		'registration' => esc_html__( 'User Registration', 'woocommerce-cnvrsn-trckng' ),
-		'search' => esc_html__( 'Search', 'woocommerce-cnvrsn-trckng' ),
-		'wishlist' => esc_html__( 'Add to Wishlist', 'woocommerce-cnvrsn-trckng' ),
+		'product_view'   => __( 'Product View', 'woocommerce-cnvrsn-trckng' ),
+		'category_view'  => __( 'Category View', 'woocommerce-cnvrsn-trckng' ),
+		'add_to_cart'    => __( 'Add to Cart', 'woocommerce-cnvrsn-trckng' ),
+		'start_checkout' => __( 'Start Checkout', 'woocommerce-cnvrsn-trckng' ),
+		'purchase'       => __( 'Successful Purchase', 'woocommerce-cnvrsn-trckng' ),
+		'registration'   => __( 'User Registration', 'woocommerce-cnvrsn-trckng' ),
+		'search'         => __( 'Search', 'woocommerce-cnvrsn-trckng' ),
+		'wishlist'       => __( 'Add to Wishlist', 'woocommerce-cnvrsn-trckng' ),
 	);
 
 	return apply_filters( 'cnvrsn_trckng_supported_events', $default_events );
@@ -43,7 +44,7 @@ function supported_events() {
  * Get (unique) enabled events
  *
  * @return array
- * @since  0.1.0
+ * @since 0.1.0
  */
 function active_events() {
 	$settings = Admin\get_settings();
@@ -56,7 +57,7 @@ function active_events() {
 		if ( ! isset( $integration['events'] ) ) { continue; }
 
 		foreach ( $integration['events'] as $event => $bool ) {
-			if ( $bool ) { $enabled[$event] = 1; }
+			if ( $bool ) { $enabled[ $event ] = 1; }
 		}
 	}
 
@@ -66,14 +67,14 @@ function active_events() {
 /**
  * Return an event's text label
  *
- * @param  string $event
+ * @param  string $event An event type slug
  * @return string
  * @since 0.1.0
  */
 function get_event_label( $event ) {
 	$events = supported_events();
 
-	return isset( $events[$event] ) ? $events[$event] : $event;
+	return isset( $events[ $event ] ) ? $events[ $event ] : $event;
 }
 
 /**
@@ -130,17 +131,17 @@ function add_actions() {
 /**
  * Do add to cart event
  *
- * @param  string $cart_item_key
- * @param  int $product_id
- * @param  int $quantity
- * @param  int $variation_id
- * @param  object $variation
- * @param  object $cart_item_data
+ * @param  string $cart_item_key Hashed cart item key
+ * @param  int    $product_id WP ID of the product
+ * @param  int    $quantity The quantity added
+ * @param  int    $variation_id WP ID of the variation, or 0
+ * @param  object $variation Variation data, when applicablt
+ * @param  object $cart_item_data Abtract of cart data
  * @since 0.1.0
  */
 function add_to_cart( $cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ) {
 	$product_data = get_product_data( $product_id, $variation_id );
-	$cart_data = array(
+	$cart_data    = array(
 		'qty' => $quantity,
 	);
 	dispatch_event( 'add_to_cart', array_merge( $product_data, $cart_data ) );
@@ -158,7 +159,7 @@ function start_checkout() {
 /**
  * Do completed checkout event
  *
- * @param  int $order_id
+ * @param int $order_id WP order ID
  * @since 0.1.0
  */
 function purchase( $order_id ) {
@@ -187,14 +188,17 @@ function category_view() {
  * Adds a url query arg to determine newly registered user
  *
  * @uses woocommerce_registration_redirect action
- * @param string $redirect
+ * @param string $redirect URL to redirect to
  * @return string
  * @since 0.1.0
  */
 function wc_redirect_url( $redirect ) {
-	$redirect = add_query_arg( array(
-		'_wc_user_reg' => 'true'
-	), $redirect );
+	$redirect = add_query_arg(
+		array(
+			'_wc_user_reg' => 'true',
+		),
+		$redirect
+	);
 
 	return $redirect;
 }
@@ -206,7 +210,7 @@ function wc_redirect_url( $redirect ) {
  * @since 0.1.0
  */
 function track_registration() {
-	if ( isset( $_GET['_wc_user_reg'] ) && $_GET['_wc_user_reg'] == 'true' ) {
+	if ( isset( $_GET['_wc_user_reg'] ) && 'true' === $_GET['_wc_user_reg'] ) {
 		add_action( 'wp_footer', __NAMESPACE__ . '\complete_registration' );
 	}
 }
@@ -223,6 +227,7 @@ function complete_registration() {
 /**
  * Do search event
  *
+ * @param object $query WP_Query object
  * @since 0.1.0
  */
 function search( $query ) {
@@ -243,8 +248,8 @@ function wishlist() {
 /**
  * Try to dispatch an event if an active integration supports it
  *
- * @param  string $event
- * @param  mixed $value
+ * @param string $event An event type slug
+ * @param mixed  $value Optional data to pass along
  * @since 0.1.0
  */
 function dispatch_event( $event, $value = '' ) {
@@ -269,7 +274,7 @@ function dispatch_event( $event, $value = '' ) {
  */
 function enqueue_scripts() {
 	$active = IntegrationManager::active_integrations();
-	if ( ! $active ){ return; }
+	if ( ! $active ) { return; }
 
 	$scripts = array();
 
@@ -292,7 +297,7 @@ function enqueue_scripts() {
 /**
  * Fetch a bunch of order-related data for inclusion into the script
  *
- * @param  string $order_id
+ * @param  string $order_id WP order ID
  * @return array
  * @since 0.1.0
  */
@@ -321,15 +326,15 @@ function get_purchase_data( $order_id ) {
 
 	$customer = $order->get_user();
 	if ( $customer ) {
-		$customer_id         =  $customer->ID;
-		$customer_email      =  $customer->user_email;
-		$customer_first_name =  $customer->first_name;
-		$customer_last_name  =  $customer->last_name;
+		$customer_id         = $customer->ID;
+		$customer_email      = $customer->user_email;
+		$customer_first_name = $customer->first_name;
+		$customer_last_name  = $customer->last_name;
 	}
 
 	$replacement_keys = get_replacement_keys( 'order' );
 	foreach ( $replacement_keys as $key ) {
-		if ( isset( $$key ) ) { $data[$key] = $$key; }
+		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
 	}
 
 	return $data;
@@ -347,16 +352,16 @@ function get_user_data() {
 	$current_user = wp_get_current_user();
 	if ( ! ( $current_user instanceof WP_User ) ) { return $data; }
 
-	$customer_id = $current_user->ID;
-	$customer_email = $current_user->user_email;
+	$customer_id         = $current_user->ID;
+	$customer_email      = $current_user->user_email;
 	$customer_first_name = esc_html( $current_user->user_firstname );
-	$customer_last_name = esc_html( $current_user->user_lastname );
+	$customer_last_name  = esc_html( $current_user->user_lastname );
 	// $customer_username = esc_html( $current_user->user_login );
 	// $customer_display_name = esc_html( $current_user->display_name );
 
 	$replacement_keys = get_replacement_keys( 'customer' );
 	foreach ( $replacement_keys as $key ) {
-		if ( isset( $$key ) ) { $data[$key] = $$key; }
+		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
 	}
 
 	return $data;
@@ -365,22 +370,22 @@ function get_user_data() {
 /**
  * Fetch a bunch of product-related data for inclusion into the script
  *
- * @param  object $pid
- * @param  string $vid
+ * @param  object $pid WP product ID
+ * @param  string $vid Optional WP variation ID to use as an override
  * @return array
  * @since 0.1.0
  */
 function get_product_data( $pid, $vid = '' ) {
 	$data = array();
 
-	$product = wc_get_product( $vid  ? $vid : $pid );
+	$product = wc_get_product( $vid ? $vid : $pid );
 	if ( ! is_a( $product, 'WC_Product' ) ) { return $data; }
 
-	$backcompat     = version_compare( WC_VERSION, '3.0', '<' );
+	$backcompat = version_compare( WC_VERSION, '3.0', '<' );
 
-	$product_id     = $product->get_sku() ? $product->get_sku() : $product->get_id();
-	$product_name   = $product->get_name();
-	$product_price  = $product->get_price();
+	$product_id    = $product->get_sku() ? $product->get_sku() : $product->get_id();
+	$product_name  = $product->get_name();
+	$product_price = $product->get_price();
 
 	$_cats          = array();
 	$variation_data = $backcompat ? $product->variation_data : ( $product->is_type( 'variation' ) ? wc_get_product_variation_attributes( $product->get_id() ) : '' );
@@ -388,10 +393,10 @@ function get_product_data( $pid, $vid = '' ) {
 	if ( is_array( $variation_data ) && ! empty( $variation_data ) ) {
 		$product_variation = wc_get_formatted_variation( $variation_data, true );
 
-		$parent_product    = wc_get_product( $backcompat ? $product->parent->id : $product->get_parent_id() );
-		$categories        = get_the_terms( $parent_product->get_id(), 'product_cat' );
+		$parent_product = wc_get_product( $backcompat ? $product->parent->id : $product->get_parent_id() );
+		$categories     = get_the_terms( $parent_product->get_id(), 'product_cat' );
 	} else {
-		$categories        = get_the_terms( $product->get_id(), 'product_cat' );
+		$categories = get_the_terms( $product->get_id(), 'product_cat' );
 	}
 
 	if ( $categories ) {
@@ -404,7 +409,7 @@ function get_product_data( $pid, $vid = '' ) {
 
 	$replacement_keys = get_replacement_keys( 'product' );
 	foreach ( $replacement_keys as $key ) {
-		if ( isset( $$key ) ) { $data[$key] = $$key; }
+		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
 	}
 
 	return $data;
@@ -413,7 +418,7 @@ function get_product_data( $pid, $vid = '' ) {
 /**
  * Return valid keys for per-event replacement data
  *
- * @param  string $event
+ * @param  string $event An event type slug, or a genericized version of same
  * @return array
  * @since 0.1.0
  */
@@ -422,7 +427,7 @@ function get_replacement_keys( $event ) {
 
 	// we primarily want to include event names for use in \Admin\get_replacement_help_text()
 	// but will also sometimes include shorthand for a shared get_foo_data() call above
-	switch ($event) {
+	switch ( $event ) {
 		case 'add_to_cart':
 		case 'product':
 			$keys = array( 'product_id', 'product_name', 'product_price', 'product_category', 'product_variation' );

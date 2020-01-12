@@ -1,10 +1,15 @@
 <?php
-
 /**
  * Integration Abstract
+ *
+ * @package WooCommerce_Cnvrsn_Trckng
  */
+
 namespace CnvrsnTrckng;
 
+/**
+ * Define a minimum viable integration off which real integrations will be based
+ */
 abstract class Integration {
 	/**
 	 * ID/Slug
@@ -43,8 +48,8 @@ abstract class Integration {
 	 * @since 0.1.0
 	 */
 	protected function add_settings_fields() {
-		add_action( 'cnvrsn_trckng_' . $this->id . '_render_settings_first', array( $this, 'add_settings_fields_first') );
-		add_action( 'cnvrsn_trckng_' . $this->id . '_render_settings_last', array( $this, 'add_settings_fields_last') );
+		add_action( 'cnvrsn_trckng_' . $this->id . '_render_settings_first', array( $this, 'add_settings_fields_first' ) );
+		add_action( 'cnvrsn_trckng_' . $this->id . '_render_settings_last', array( $this, 'add_settings_fields_last' ) );
 
 		add_filter( 'cnvrsn_trckng_sanitize_settings', array( $this, 'sanitize_settings_fields' ), 10, 2 );
 	}
@@ -52,12 +57,12 @@ abstract class Integration {
 	/**
 	 * Settings Fields key (for convenience, because it's long)
 	 *
-	 * @param  string $suffix
+	 * @param  string $suffix Additional key text to append to our too-long base
 	 * @return string
 	 * @since 0.1.0
 	 */
 	public function settings_key( $suffix ) {
-		return esc_attr( 'cnvrsn_trckng_settings[integrations][' . $this->id . ']' . $suffix );
+		return 'cnvrsn_trckng_settings[integrations][' . $this->id . ']' . $suffix;
 	}
 
 	/**
@@ -77,6 +82,8 @@ abstract class Integration {
 	/**
 	 * For any added settings, we must have a sanitizer function or they won't be saved
 	 *
+	 * @param  array $cleaned An empty or previously-saved array of settings
+	 * @param  array $saved Untrusted user-input we must sanitize before actually saving
 	 * @since 0.1.0
 	 */
 	public function sanitize_settings_fields( $cleaned, $saved ) {
@@ -119,7 +126,7 @@ abstract class Integration {
 	 */
 	public function get_events() {
 		$integration_events = apply_filters( 'cnvrsn_trckng_' . $this->id . '_supported_events', $this->events );
-		$supported_events = array_keys( Events\supported_events() );
+		$supported_events   = array_keys( Events\supported_events() );
 
 		return array_intersect( $supported_events, $integration_events );
 	}
@@ -137,53 +144,53 @@ abstract class Integration {
 	/**
 	 * Check if an event is enabled in the plugin settings
 	 *
-	 * @param  string $event
+	 * @param  string $event An event type slug
 	 * @return boolean
 	 * @since 0.1.0
 	 */
 	public function event_enabled( $event ) {
 		$events = $this->get_plugin_settings( 'events' );
 
-		if ( ! $events || ! isset( $events[$event] ) ) { return false; }
+		if ( ! $events || ! isset( $events[ $event ] ) ) { return false; }
 
-		return $events[$event];
+		return $events[ $event ];
 	}
 
 	/**
 	 * Get settings from the plugin
 	 *
-	 * @param  string $key
-	 * @return array|false
+	 * @param  string $key Optional sub-key to pluck out of our array
+	 * @return mixed|false
 	 * @since 0.1.0
 	 */
 	protected function get_plugin_settings( $key = '' ) {
 		$settings = Admin\get_settings();
 
-		if ( ! isset( $settings['integrations'][$this->id] ) ) { return false; }
+		if ( ! isset( $settings['integrations'][ $this->id ] ) ) { return false; }
 
 		if ( $key ) {
-			return isset( $settings['integrations'][$this->id][$key] ) ? $settings['integrations'][$this->id][$key] : false;
+			return isset( $settings['integrations'][ $this->id ][ $key ] ) ? $settings['integrations'][ $this->id ][ $key ] : false;
 		}
 
-		return $settings['integrations'][$this->id];
+		return $settings['integrations'][ $this->id ];
 	}
 
 	/**
 	 * Check if this integration supports a specific event
 	 *
-	 * @param  array $feature
+	 * @param  array $event An event type slug
 	 * @return boolean
 	 * @since 0.1.0
 	 */
-	public function supports( $feature ) {
-		return in_array( $feature, $this->events );
+	public function supports( $event ) {
+		return in_array( $event, $this->events, true );
 	}
 
 	/**
 	 * Filter codes for dynamic data replacement
 	 *
-	 * @param  string $code
-	 * @param  array $data
+	 * @param  string $code Some user-entered code that needs replacements
+	 * @param  array  $data Array of data for potentially making replacements
 	 * @return string
 	 * @since 0.1.0
 	 */

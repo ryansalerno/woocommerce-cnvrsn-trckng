@@ -1,12 +1,15 @@
 <?php
-
 /**
  * Manage available integrations
  *
  * @package WooCommerce_Cnvrsn_Trckng
  */
+
 namespace CnvrsnTrckng;
 
+/**
+ * Load and initialize our Integrations, and return info about them
+ */
 class IntegrationManager {
 	/**
 	 * All integrations
@@ -14,7 +17,7 @@ class IntegrationManager {
 	 * @var array
 	 * @since 0.1.0
 	 */
-	static private $integrations = array();
+	private static $integrations = array();
 
 	/**
 	 * Active integrations
@@ -22,20 +25,20 @@ class IntegrationManager {
 	 * @var array
 	 * @since 0.1.0
 	 */
-	static private $active = array();
+	private static $active = array();
 
 	/**
 	 * Require all our integration classes
 	 *
 	 * @since 0.1.0
 	 */
-	static function load_integrations() {
+	public static function load_integrations() {
 		require_once __DIR__ . '/integrations/_abstract.php';
 		require_once __DIR__ . '/integrations/custom.php';
 		require_once __DIR__ . '/integrations/google-ads.php';
 
 		self::$integrations['google-ads'] = new GoogleAdsIntegration();
-		self::$integrations['custom'] = new CustomIntegration();
+		self::$integrations['custom']     = new CustomIntegration();
 
 		self::check_active_integrations();
 	}
@@ -43,10 +46,10 @@ class IntegrationManager {
 	/**
 	 * Check settings to find out which integrations are active
 	 *
-	 * @return array
+	 * @return void
 	 * @since 0.1.0
 	 */
-	static function check_active_integrations() {
+	protected static function check_active_integrations() {
 		foreach ( self::$integrations as $integration ) {
 			if ( $integration->is_enabled() ) {
 				self::$active[] = $integration;
@@ -60,7 +63,7 @@ class IntegrationManager {
 	 * @return array
 	 * @since 0.1.0
 	 */
-	static function active_integrations() {
+	public static function active_integrations() {
 		return self::$active;
 	}
 
@@ -70,7 +73,7 @@ class IntegrationManager {
 	 * @return array
 	 * @since 0.1.0
 	 */
-	static function all_integrations() {
+	public static function all_integrations() {
 		return self::$integrations;
 	}
 }

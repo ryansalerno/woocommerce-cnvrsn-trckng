@@ -7,9 +7,12 @@
  * Text Domain:     woocommerce-cnvrsn-trckng
  * Version:         0.1.0
  * License:         GPL3
+
  * WC requires at least: 2.3
  * WC tested up to: 3.8.1
-*/
+
+ * @package WooCommerce_Cnvrsn_Trckng
+ */
 
 // Original code Copyright (c) 2017 Tareq Hasan (email: tareq@wedevs.com). All rights reserved.
 // (License moved to its own file)
