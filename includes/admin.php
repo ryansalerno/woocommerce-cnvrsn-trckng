@@ -264,7 +264,7 @@ function admin_enqueue_scripts( $hook ) {
  * @since 0.1.0
  */
 function plugin_action_links( $links ) {
-	$links[] = '<a href="' . admin_url( 'admin.php?page=conversion-tracking' ) . '">' . __( 'Settings', 'woocommerce-cnvrsn-trckng' ) . '</a>';
+	array_unshift( $links, '<a href="' . admin_url( 'admin.php?page=conversion-tracking' ) . '">' . __( 'Settings', 'woocommerce-cnvrsn-trckng' ) . '</a>' );
 
 	return $links;
 }
