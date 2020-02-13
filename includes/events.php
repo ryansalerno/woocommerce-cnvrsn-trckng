@@ -311,7 +311,7 @@ function get_purchase_data( $order_id ) {
 	$order_discount = $order->get_total_discount();
 	$order_shipping = $order->get_total_shipping();
 	$payment_method = $backcompat ? $order->payment_method : $order->get_payment_method();
-	$used_coupons   = $order->get_used_coupons() ? implode( ',', $order->get_used_coupons() ) : '';
+	$used_coupons   = $order->get_coupon_codes() ? implode( ',', $order->get_coupon_codes() ) : '';
 
 	$customer = $order->get_user();
 	if ( $customer ) {
