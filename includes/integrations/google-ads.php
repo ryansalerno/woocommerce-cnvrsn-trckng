@@ -150,7 +150,7 @@ class GoogleAdsIntegration extends Integration {
 			'gtag("js", new Date());' .
 			'gtag("config", "' . esc_js( $account_id ) . '");';
 
-		wc_enqueue_js( $script );
+		return $script;
 	}
 
 	/**

@@ -276,10 +276,25 @@ function enqueue_scripts() {
 	$active = IntegrationManager::active_integrations();
 	if ( ! $active ) { return; }
 
-	$scripts = array();
+	$inline_js = '';
 
 	foreach ( $active as $integration ) {
 		$output = $integration->enqueue_script();
+
+		if ( ! empty( $output ) ) {
+			$inline_js .= apply_filters( 'cnvrsn_trckng_inline_scripts_' . $integration->get_id(), $output );
+		}
+	}
+
+	if ( ! empty( $inline_js ) ) {
+		// wc_enqueue_js sanitization
+		$inline_js = wp_check_invalid_utf8( $inline_js );
+		$inline_js = preg_replace( '/&#(x)?0*(?(1)27|39);?/i', "'", $inline_js );
+		$inline_js = str_replace( "\r", '', $inline_js );
+
+		add_action('wp_footer', function() use ( $inline_js ) {
+			echo '<script type="text/javascript">' . $inline_js . '</script>';
+		}, 100);
 	}
 }
 
