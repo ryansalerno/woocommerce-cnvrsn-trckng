@@ -111,11 +111,11 @@ abstract class Integration {
 	 * @since 0.1.0
 	 */
 	public function asyncdefer_script( $tag, $handle ) {
-		if ( in_array( $handle, $this->defers, true ) ) {
+		if ( ! empty( $this->defers ) && in_array( $handle, $this->defers, true ) ) {
 			$tag = str_replace( '<script ', '<script defer ', $tag );
 		}
 
-		if ( in_array( $handle, $this->asyncs, true ) ) {
+		if ( ! empty( $this->asyncs ) && in_array( $handle, $this->asyncs, true ) ) {
 			$tag = str_replace( '<script ', '<script async ', $tag );
 		}
 

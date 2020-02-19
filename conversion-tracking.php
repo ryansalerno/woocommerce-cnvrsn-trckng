@@ -9,7 +9,7 @@
  * License:         GPL3
 
  * WC requires at least: 2.3
- * WC tested up to: 3.8.1
+ * WC tested up to: 3.9.2
 
  * @package WooCommerce_Cnvrsn_Trckng
  */
@@ -17,9 +17,8 @@
 // Original code Copyright (c) 2017 Tareq Hasan (email: tareq@wedevs.com). All rights reserved.
 // (License moved to its own file)
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit; // bail if accessed directly
-}
+// bail if accessed directly
+defined( 'ABSPATH' ) || exit;
 
 define( 'CNVRSN_VERSION', '0.1.0' );
 define( 'CNVRSN_FILE', __FILE__ );

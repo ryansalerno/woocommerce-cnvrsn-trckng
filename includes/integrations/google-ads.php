@@ -8,7 +8,7 @@
 namespace CnvrsnTrckng;
 
 /**
- * What good is a Google Ads campaign if you can'tr track ROI?
+ * What good is a Google Ads campaign if you can't track ROI?
  */
 class GoogleAdsIntegration extends Integration {
 	/**
