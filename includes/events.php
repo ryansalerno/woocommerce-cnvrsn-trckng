@@ -287,15 +287,54 @@ function enqueue_scripts() {
 	}
 
 	if ( ! empty( $inline_js ) ) {
-		// wc_enqueue_js sanitization
-		$inline_js = wp_check_invalid_utf8( $inline_js );
-		$inline_js = preg_replace( '/&#(x)?0*(?(1)27|39);?/i', "'", $inline_js );
-		$inline_js = str_replace( "\r", '', $inline_js );
-
-		add_action('wp_footer', function() use ( $inline_js ) {
-			echo '<script type="text/javascript">' . $inline_js . '</script>';
-		}, 100);
+		add_to_footer( $inline_js );
 	}
+}
+
+/**
+ * Render some code in the footer
+ * (because wc_enqueue_js() requires jQuery and doesn't support tracking pixels or non-js content)
+ *
+ * @param string $code   Some user-entered code that needs replacements
+ * @param string $format Either 'script' or 'kses', which controls the output formatting
+ * @since 0.1.0
+ */
+function add_to_footer( $code, $format = 'script' ) {
+	add_action(
+		'wp_footer',
+		function() use( $code, $format ) {
+			switch ( $format ) {
+				case 'script':
+					echo '<script type="text/javascript">' . sanitize_js( $code ) . '</script>';
+					break;
+
+				case 'kses':
+					echo wp_kses( $code, 'post' );
+					break;
+
+				default:
+					echo $code;
+					break;
+			}
+		},
+		500
+	);
+}
+
+/**
+ * Before printing JS anywhere, maybe check it at least a little bit
+ *
+ * @param  string $js Some arbitrary javascript
+ * @return string $js Possibly safer javascript
+ * @since 0.1.0
+ */
+function sanitize_js( $js ) {
+	// wc_enqueue_js() does these things
+	$js = wp_check_invalid_utf8( $js );
+	$js = preg_replace( '/&#(x)?0*(?(1)27|39);?/i', "'", $js );
+	$js = str_replace( "\r", '', $js );
+
+	return $js;
 }
 
 /**

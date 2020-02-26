@@ -100,6 +100,6 @@ class CustomIntegration extends Integration {
 
 		if ( empty( $codes[ $event ] ) ) { return; }
 
-		echo wp_kses( $this->dynamic_data_replacement( $codes[ $event ], $data ), 'post' );
+		Events\add_to_footer( $this->dynamic_data_replacement( $codes[ $event ], $data ), 'kses' );
 	}
 }

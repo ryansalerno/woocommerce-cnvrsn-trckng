@@ -173,6 +173,6 @@ class GoogleAdsIntegration extends Integration {
 			)
 		);
 
-		wc_enqueue_js( $code );
+		Events\add_to_footer( $code );
 	}
 }
