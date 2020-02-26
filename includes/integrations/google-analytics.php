@@ -141,8 +141,8 @@ class GoogleAnalyticsIntegration extends Integration {
 
 			$_item = array(
 				'id' => $product['product_id'],
-				'name' => $product['product_name'],
-				'category' => $product['product_category'],
+				'name' => html_entity_decode( $product['product_name'] ),
+				'category' => html_entity_decode( $product['product_category'] ),
 				'quantity' => $item->get_quantity(),
 				'price' => $item->get_total(),
 			);
