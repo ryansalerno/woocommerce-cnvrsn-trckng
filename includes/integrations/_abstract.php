@@ -220,7 +220,7 @@ abstract class Integration {
 	 */
 	protected function dynamic_data_replacement( $code, $data ) {
 		foreach ( (array) $data as $key => $value ) {
-			if ( empty( $value ) ) { continue; }
+			if ( empty( $value ) || strpos( $key, '_' ) === 0 ) { continue; }
 
 			$code = str_replace( '{' . $key . '}', $value, $code );
 		}

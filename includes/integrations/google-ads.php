@@ -143,12 +143,21 @@ class GoogleAdsIntegration extends Integration {
 		$account_id = $this->get_plugin_settings( 'account_id' );
 		if ( ! $account_id ) { return; }
 
-		wp_enqueue_script( 'cnvrsn-trckng-' . $this->id, 'https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $account_id ), array(), CNVRSN_VERSION, true );
-		$script =
-			'window.dataLayer = window.dataLayer || [];' .
-			'function gtag(){dataLayer.push(arguments)};' .
-			'gtag("js", new Date());' .
-			'gtag("config", "' . esc_js( $account_id ) . '");';
+		// Google Analytics already loads the gtm script, so check for it first
+		// NOTE: we're counting on analytics coming first in our IntegrationManager
+		if ( wp_script_is( 'cnvrsn-trckng-google-analytics' ) ) {
+			// already enqueued, so just register the Ads account
+			$script = 'gtag("config", "' . esc_js( $account_id ) . '");';
+		}  else {
+			// no gtm yet, so load everything we need
+			wp_enqueue_script( 'cnvrsn-trckng-' . $this->id, 'https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $account_id ), array(), CNVRSN_VERSION, true );
+
+			$script =
+				'window.dataLayer = window.dataLayer || [];' .
+				'function gtag(){dataLayer.push(arguments)};' .
+				'gtag("js", new Date());' .
+				'gtag("config", "' . esc_js( $account_id ) . '");';
+		}
 
 		return $script;
 	}

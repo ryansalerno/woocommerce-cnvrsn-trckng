@@ -364,6 +364,7 @@ function get_purchase_data( $order_id ) {
 	$order_subtotal = $order->get_subtotal();
 	$order_discount = $order->get_total_discount();
 	$order_shipping = $order->get_total_shipping();
+	$order_tax      = $order->get_total_tax();
 	$payment_method = $backcompat ? $order->payment_method : $order->get_payment_method();
 	$used_coupons   = $order->get_coupon_codes() ? implode( ',', $order->get_coupon_codes() ) : '';
 
@@ -378,6 +379,12 @@ function get_purchase_data( $order_id ) {
 	$replacement_keys = get_replacement_keys( 'order' );
 	foreach ( $replacement_keys as $key ) {
 		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
+	}
+
+	$data['_order_id'] = $order_id;
+	$data['_item_ids'] = array();
+	foreach ( (array) $order->get_items() as $item ) {
+		$data['_item_ids'][] = $item->get_product_id();
 	}
 
 	return $data;
@@ -480,7 +487,7 @@ function get_replacement_keys( $event ) {
 			break;
 		case 'purchase':
 		case 'order':
-			$keys = array( 'currency', 'order_number', 'order_total', 'order_subtotal', 'order_discount', 'order_shipping', 'payment_method', 'used_coupons', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
+			$keys = array( 'currency', 'order_number', 'order_total', 'order_subtotal', 'order_discount', 'order_shipping', 'order_tax', 'payment_method', 'used_coupons', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
 			break;
 		case 'registration':
 		case 'customer':

@@ -36,7 +36,9 @@ class IntegrationManager {
 		require_once __DIR__ . '/integrations/_abstract.php';
 		require_once __DIR__ . '/integrations/custom.php';
 		require_once __DIR__ . '/integrations/google-ads.php';
+		require_once __DIR__ . '/integrations/google-analytics.php';
 
+		self::$integrations['google-analytics'] = new GoogleAnalyticsIntegration();
 		self::$integrations['google-ads'] = new GoogleAdsIntegration();
 		self::$integrations['custom']     = new CustomIntegration();
 
