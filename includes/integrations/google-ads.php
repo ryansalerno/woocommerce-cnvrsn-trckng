@@ -161,7 +161,7 @@ class GoogleAdsIntegration extends Integration {
 	 */
 	public function purchase( $order_data ) {
 		$settings = $this->get_plugin_settings();
-		if ( ! isset( $settings['account_id'] ) || empty( $settings['account_id'] ) || ! isset( $settings['labels'] ) || ! isset( $settings['labels']['purchase'] ) || empty( $settings['labels']['purchase'] ) ) { return; }
+		if ( empty( $settings['account_id'] ) || empty( $settings['labels']['purchase'] ) ) { return; }
 
 		$code = $this->build_event(
 			'conversion',

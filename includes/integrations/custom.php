@@ -98,7 +98,7 @@ class CustomIntegration extends Integration {
 	public function generic_event( $event, $data = array() ) {
 		$codes = $this->get_plugin_settings( 'codes' );
 
-		if ( ! $codes || ! isset( $codes[ $event ] ) || empty( $codes[ $event ] ) ) { return; }
+		if ( empty( $codes[ $event ] ) ) { return; }
 
 		echo wp_kses( $this->dynamic_data_replacement( $codes[ $event ], $data ), 'post' );
 	}
