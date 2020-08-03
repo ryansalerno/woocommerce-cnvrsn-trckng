@@ -18,7 +18,7 @@ class GoogleAnalyticsIntegration extends Integration {
 		$this->id     = 'google-analytics';
 		$this->name   = __( 'Google Analytics', 'woocommerce-cnvrsn-trckng' );
 		$this->events = array(
-			// https://developers.google.com/gtagjs/reference/event
+			// https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce
 			'start_checkout',
 			'purchase',
 		);
@@ -26,6 +26,16 @@ class GoogleAnalyticsIntegration extends Integration {
 		$this->defers = array( 'cnvrsn-trckng-' . $this->id );
 
 		parent::__construct();
+	}
+
+	/**
+	 * Do something after all other integrations are loaded
+	 *
+	 * @return void
+	 * @since 0.2.0
+	 */
+	public function integration_interactions() {
+		$this->gtag = apply_filters( 'cnvrsn_trckng_' . $this->id . '_use_gtag', ! empty( IntegrationManager::active( 'google-ads' ) ) );
 	}
 
 	/**
@@ -91,7 +101,123 @@ class GoogleAnalyticsIntegration extends Integration {
 	 * @since 0.1.1
 	 */
 	public function build_event( $event_name, $params = array(), $method = 'event' ) {
+		$tracker    = $this->is_gtag() ? 'gtag' : 'ga';
+		$easy_gtags = array(
+			'purchase'       => 1,
+			'begin_checkout' => 1,
+		);
+
+		if ( $tracker === 'gtag' && isset( $easy_gtags[$event_name] ) ) {
+			// gtag has a simple call structure, so we can re-use this function most of the time
+			return $this->build_event_gtag( $event_name,  $params, $method );
+		} else {
+			// ga:ec actions are more complicated and require some hoop jumping
+			// (this also allows us to have gtag-specific routines if necessary)
+			$callable = 'build_event_' . $tracker . '_' . $event_name;
+
+			return method_exists( $this, $callable ) ? $this->$callable( $params, $method ) : '';
+		}
+	}
+
+	/**
+	 * Re-usable gtag events
+	 *
+	 * @param  string $event_name Google Analytics event name
+	 * @param  array  $params An array of parameters about the event
+	 * @param  string $method Google Analytics method to pass
+	 * @return string
+	 * @since 0.2.0
+	 */
+	public function build_event_gtag( $event_name, $params = array(), $method = 'event' ) {
 		return sprintf( "gtag('%s', '%s', %s);", $method, $event_name, json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+	}
+
+	/**
+	 * Enhanced ecommerce checkout progress
+	 *
+	 * @see: https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce#measuring-transactions
+	 *
+	 * @param  array  $params An array of parameters about the event
+	 * @param  string $method [unused]
+	 * @return string
+	 * @since 0.2.0
+	 */
+	public function build_event_ga_begin_checkout( $params = array(), $method = '' ) {
+		$code = ! empty( $params['items'] ) ? $this->ga_items( $params['items'] ) : '';
+		if ( empty( $code) ) { return ''; }
+
+		$params = $this->ga_param_translate( $params );
+		$params['step'] = 1;
+
+		$code .= sprintf( "ga('ec:setAction', 'checkout', %s);", json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+
+		return $code;
+	}
+
+	/**
+	 * Enhanced ecommerce purchase event
+	 *
+	 * @see: https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce#measuring-transactions
+	 *
+	 * @param  array  $params An array of parameters about the event
+	 * @param  string $method [unused]
+	 * @return string
+	 * @since 0.2.0
+	 */
+	public function build_event_ga_purchase( $params = array(), $method = '' ) {
+		$code   = ! empty( $params['items'] ) ? $this->ga_items( $params['items'] ) : '';
+		$params = $this->ga_param_translate( $params );
+
+		$code .= sprintf( "ga('ec:setAction', 'purchase', %s);", json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+
+		return $code;
+	}
+
+	/**
+	 * Translate from gtag keys to ga keys
+	 *
+	 * @param  array $params key => value params
+	 * @return array
+	 * @since 0.2.0
+	 */
+	protected function ga_param_translate( $params ) {
+		$translated = array();
+
+		$replace = array(
+			'transaction_id' => 'id',
+			'value'          => 'revenue',
+		);
+		$unset   = array(
+			'items'    => 1,
+			'currency' => 1,
+		);
+
+		foreach ( (array) $params as $key => $value ) {
+			if ( isset( $unset[$key] ) || empty( $value ) ) { continue; }
+
+			$_key = isset( $replace[$key] ) ? $replace[$key] : $key;
+			$translated[$_key] = $value;
+		}
+
+		return $translated;
+	}
+
+	/**
+	 * Output as many ec:addProduct calls as needed
+	 * (after a certain number of products, it would be more compact to have a for loop in the JS, but....)
+	 *
+	 * @param  array $items as returned by our items_by_orderid() function
+	 * @return array
+	 * @since 0.2.0
+	 */
+	protected function ga_items( $items ) {
+		$ec = '';
+
+		foreach ( (array) $items as $item ) {
+			$ec .= 'ga("ec:addProduct", ' . json_encode( $item, JSON_UNESCAPED_SLASHES ) . ');' . PHP_EOL;
+		}
+
+		return $ec;
 	}
 
 	/**
@@ -170,12 +296,30 @@ class GoogleAnalyticsIntegration extends Integration {
 		$tracking_id = $this->get_plugin_settings( 'tracking_id' );
 		if ( ! $tracking_id ) { return; }
 
-		wp_enqueue_script( 'cnvrsn-trckng-' . $this->id, 'https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $tracking_id ), array(), CNVRSN_VERSION, true );
-		$script =
-			'window.dataLayer = window.dataLayer || [];' .
-			'function gtag(){dataLayer.push(arguments)};' .
-			'gtag("js", new Date());' .
-			'gtag("config", "' . esc_js( $tracking_id ) . '");';
+		// despite Google's docs, the older analytics.js is better than using gtag for the case of only running GA
+		// see: https://github.com/googleanalytics/autotrack/issues/202#issuecomment-333744194
+		// and: https://github.com/GoogleChrome/lighthouse/issues/10783
+
+		if ( $this->gtag ) {
+			$external_url = 'https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $tracking_id );
+
+			$script =
+				'window.dataLayer=window.dataLayer||[];' .
+				'function gtag(){dataLayer.push(arguments)};' .
+				'gtag("js", new Date());' .
+				'gtag("config", "' . esc_js( $tracking_id ) . '");';
+		} else {
+			$external_url = 'https://www.google-analytics.com/analytics.js';
+
+			$script =
+				'window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};' .
+				'ga("create", "' . esc_js( $tracking_id ) . '", "auto");' .
+				'ga("set", "transport", "beacon");' . // https://github.com/philipwalton/blog/blob/master/articles/the-google-analytics-setup-i-use-on-every-site-i-build.md#loading-analyticsjs
+				'ga("require", "ec");' .
+				'ga("send", "pageview");';
+		}
+
+		wp_enqueue_script( 'cnvrsn-trckng-' . $this->id, $external_url, array(), null, true );
 
 		return $script;
 	}
@@ -224,8 +368,19 @@ class GoogleAnalyticsIntegration extends Integration {
 			'coupon'         => $order_data['used_coupons'],
 		);
 
+		// https://developers.google.com/analytics/devguides/collection/gtagjs/enhanced-ecommerce#measure_purchases
 		$code = $this->build_event( 'purchase', $params );
 
 		Events\add_to_footer( $code );
+	}
+
+	/**
+	 * Determine if tracking code is using gtag() or regular ga()
+	 *
+	 * @return bool
+	 * @since 0.2.0
+	 */
+	public function is_gtag() {
+		return $this->gtag;
 	}
 }
