@@ -18,12 +18,28 @@ class GoogleAdsIntegration extends Integration {
 		$this->id     = 'google-ads';
 		$this->name   = __( 'Google Ads', 'woocommerce-cnvrsn-trckng' );
 		$this->events = array(
+			// https://developers.google.com/gtagjs/reference/event
 			'purchase',
 		);
 		$this->asyncs = array( 'cnvrsn-trckng-' . $this->id );
 		$this->defers = array( 'cnvrsn-trckng-' . $this->id );
 
 		parent::__construct();
+	}
+
+	/**
+	 * Do something after all other integrations are loaded
+	 *
+	 * @return void
+	 * @since 0.2.0
+	 */
+	public function integration_interactions() {
+		$this->ga = IntegrationManager::active( 'google-analytics' );
+
+		if ( $this->is_enabled() && $this->ga ) {
+			// wipe the inline script analytics is going to enqueue in favor of our combined gtag script
+			add_filter( 'cnvrsn_trckng_inline_scripts_google-analytics', '__return_empty_string' );
+		}
 	}
 
 	/**
@@ -143,20 +159,31 @@ class GoogleAdsIntegration extends Integration {
 		$account_id = $this->get_plugin_settings( 'account_id' );
 		if ( ! $account_id ) { return; }
 
-		// Google Analytics already loads the gtm script, so check for it first
-		// NOTE: we're counting on analytics coming first in our IntegrationManager
-		if ( wp_script_is( 'cnvrsn-trckng-google-analytics' ) ) {
-			// already enqueued, so just register the Ads account
-			$script = 'gtag("config", "' . esc_js( $account_id ) . '");';
-		}  else {
-			// no gtm yet, so load everything we need
-			wp_enqueue_script( 'cnvrsn-trckng-' . $this->id, 'https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $account_id ), array(), CNVRSN_VERSION, true );
+		// Ads seems to be able to track based on being linked to Analytics,
+		// but no one on the internet will say with certainty what's actually required
+		// so to be safe, we'll switch to tag manager here and override
+		// GA's tracking code in the instance that both are enabled
 
-			$script =
-				'window.dataLayer = window.dataLayer || [];' .
-				'function gtag(){dataLayer.push(arguments)};' .
-				'gtag("js", new Date());' .
-				'gtag("config", "' . esc_js( $account_id ) . '");';
+		// NOTE: we're counting on coming after analytics in our IntegrationManager
+
+		wp_enqueue_script( 'cnvrsn-trckng-' . $this->id, 'https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $account_id ), array(), null, true );
+
+		$script =
+			'window.dataLayer = window.dataLayer || [];' .
+			'function gtag(){dataLayer.push(arguments)};' .
+			'gtag("js", new Date());' .
+			'gtag("config", "' . esc_js( $account_id ) . '");';
+
+		if ( $this->ga ) {
+			// don't load analytics.js (because gtm is going to do it on its own anyway)
+			wp_dequeue_script( 'cnvrsn-trckng-google-analytics' );
+			// (inline script is emptied in integration_interactions() because it's too late to do it here)
+
+			// finally, register the GA account
+			$ua = $this->ga->get_plugin_settings( 'tracking_id' );
+			if ( ! empty( $ua ) ) {
+				$script .= 'gtag("config", "' . esc_js( $ua ) . '");';
+			}
 		}
 
 		return $script;
