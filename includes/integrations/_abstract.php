@@ -40,11 +40,20 @@ abstract class Integration {
 	 */
 	public function __construct() {
 		$this->add_settings_fields();
+		add_action( 'cnvrsn_trckng_active_integrations', array( $this, 'integration_interactions' ) );
 
 		if ( isset( $this->asyncs ) || isset( $this->defers ) ) {
 			add_filter( 'script_loader_tag', array( $this, 'asyncdefer_script' ), 10, 2 );
 		}
 	}
+
+	/**
+	 * Do something after all other integrations are loaded
+	 *
+	 * @return void
+	 * @since 0.2.0
+	 */
+	public function integration_interactions() {}
 
 	/**
 	 * Add any custom settings

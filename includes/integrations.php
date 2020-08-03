@@ -39,10 +39,11 @@ class IntegrationManager {
 		require_once __DIR__ . '/integrations/google-analytics.php';
 
 		self::$integrations['google-analytics'] = new GoogleAnalyticsIntegration();
-		self::$integrations['google-ads'] = new GoogleAdsIntegration();
-		self::$integrations['custom']     = new CustomIntegration();
+		self::$integrations['google-ads']       = new GoogleAdsIntegration();
+		self::$integrations['custom']           = new CustomIntegration();
 
 		self::check_active_integrations();
+		do_action( 'cnvrsn_trckng_active_integrations' );
 	}
 
 	/**
@@ -54,7 +55,7 @@ class IntegrationManager {
 	protected static function check_active_integrations() {
 		foreach ( self::$integrations as $integration ) {
 			if ( $integration->is_enabled() ) {
-				self::$active[] = $integration;
+				self::$active[ $integration->get_id() ] = $integration;
 			}
 		}
 	}
@@ -77,6 +78,28 @@ class IntegrationManager {
 	 */
 	public static function all_integrations() {
 		return self::$integrations;
+	}
+
+	/**
+	 * Get a specific integration
+	 *
+	 * @param  string  $id   ID of the integration to potentially return
+	 * @return Integration|false
+	 * @since 0.2.0
+	 */
+	public static function integration( $id ) {
+		return isset( self::$integrations[$id] ) ? self::$integrations[$id] : false;
+	}
+
+	/**
+	 * Get a specific integration, but only if it's active
+	 *
+	 * @param  string  $id   ID of the integration to potentially return
+	 * @return Integration|false
+	 * @since 0.2.0
+	 */
+	public static function active( $id ) {
+		return isset( self::$active[$id] ) ? self::$active[$id] : false;
 	}
 }
 
