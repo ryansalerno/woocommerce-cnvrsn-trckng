@@ -150,10 +150,10 @@ function add_to_cart( $cart_item_key, $product_id, $quantity, $variation_id, $va
 /**
  * Do start checkout event
  *
- * @since 0.1.0
+ * @since 0.1.1
  */
 function start_checkout() {
-	dispatch_event( 'start_checkout' );
+	dispatch_event( 'start_checkout', get_cart_data() );
 }
 
 /**
@@ -368,13 +368,10 @@ function get_purchase_data( $order_id ) {
 	$payment_method = $backcompat ? $order->payment_method : $order->get_payment_method();
 	$used_coupons   = $order->get_coupon_codes() ? implode( ',', $order->get_coupon_codes() ) : '';
 
-	$customer = $order->get_user();
-	if ( $customer ) {
-		$customer_id         = $customer->ID;
-		$customer_email      = $customer->user_email;
-		$customer_first_name = $customer->first_name;
-		$customer_last_name  = $customer->last_name;
-	}
+	$customer_id         = $order->get_user_id();
+	$customer_email      = $order->get_billing_email();
+	$customer_first_name = $order->get_billing_first_name();
+	$customer_last_name  = $order->get_billing_last_name();
 
 	$replacement_keys = get_replacement_keys( 'order' );
 	foreach ( $replacement_keys as $key ) {
@@ -431,11 +428,117 @@ function get_product_data( $pid, $vid = '' ) {
 	$product = wc_get_product( $vid ? $vid : $pid );
 	if ( ! is_a( $product, 'WC_Product' ) ) { return $data; }
 
-	$backcompat = version_compare( WC_VERSION, '3.0', '<' );
+	$product_id        = $product->get_sku() ? $product->get_sku() : $product->get_id();
+	$product_name      = $product->get_name();
+	$product_price     = $product->get_price();
+	$product_permalink = $product->get_permalink();
+	$product_category  = get_product_category_line( $product );
 
-	$product_id    = $product->get_sku() ? $product->get_sku() : $product->get_id();
-	$product_name  = $product->get_name();
-	$product_price = $product->get_price();
+	$replacement_keys = get_replacement_keys( 'product' );
+	foreach ( $replacement_keys as $key ) {
+		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
+	}
+
+	return $data;
+}
+
+/**
+ * Fetch a bunch of cart-related data for inclusion into the script
+ *
+ * @return array
+ * @since 0.1.1
+ */
+function get_cart_data() {
+	$cart = WC()->cart;
+	$data = array();
+
+	$currency      = get_woocommerce_currency();
+	$cart_total    = $cart ? $cart->total : 0;
+	$cart_subtotal = $cart->get_subtotal();
+	$cart_discount = $cart->get_discount_total();
+	$cart_shipping = $cart->get_shipping_total();
+	$cart_tax      = $cart->get_total_tax();
+	$coupons       = implode( ',', $cart->get_applied_coupons() );
+	$cart_count    = $cart->get_cart_contents_count();
+
+	$customer            = $cart->get_customer();
+	$customer_id         = $customer->get_id();
+	$customer_email      = $customer->get_email();
+	$customer_first_name = $customer->get_first_name();
+	$customer_last_name  = $customer->get_last_name();
+
+	$replacement_keys = get_replacement_keys( 'cart' );
+	foreach ( $replacement_keys as $key ) {
+		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
+	}
+
+	$data['cart_items'] = array();
+
+	foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+		$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+		if ( ! $product || ! $product->exists() || ! $cart_item['quantity'] > 0 || ! apply_filters( 'woocommerce_cart_item_visible', true, $cart_item, $cart_item_key ) ) { continue; }
+
+		$data['cart_items'][] = array(
+			'id'        => $product->get_id(),
+			'sku'       => $product->get_sku(),
+			'name'      => $product->get_name(),
+			'permalink' => apply_filters( 'woocommerce_cart_item_permalink', $product->is_visible() ? $product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key ),
+			'category'  => get_product_category_line( $product ),
+			'price'     => $cart_item['line_total'],
+			'quantity'  => $cart_item['quantity'],
+		);
+	}
+
+	return $data;
+}
+
+/**
+ * Return valid keys for per-event replacement data
+ *
+ * @param  string $event An event type slug, or a genericized version of same
+ * @return array
+ * @since 0.1.0
+ */
+function get_replacement_keys( $event ) {
+	$keys = array();
+
+	// we primarily want to include event names for use in \Admin\get_replacement_help_text()
+	// but will also sometimes include shorthand for a shared get_foo_data() call above
+	switch ( $event ) {
+		case 'product': // shorthand
+		case 'product_view':
+			$keys = array( 'product_id', 'product_name', 'product_price', 'product_category', 'product_variation', 'product_permalink' );
+			break;
+
+		case 'cart': // shorthand
+		case 'add_to_cart':
+		case 'start_checkout':
+			$keys = array( 'currency', 'cart_total', 'cart_subtotal', 'cart_discount', 'cart_shipping', 'cart_tax', 'coupons', 'cart_count', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
+			break;
+
+		case 'order': // shorthand
+		case 'purchase':
+			$keys = array( 'currency', 'order_number', 'order_total', 'order_subtotal', 'order_discount', 'order_shipping', 'order_tax', 'payment_method', 'used_coupons', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
+			break;
+
+		case 'customer': // shorthand
+		case 'registration':
+			$keys = array( 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
+			break;
+	}
+
+	return $keys;
+}
+
+/**
+ * Grab product categories and try to make sense of them
+ *
+ * @param  WC_Product $product A WC_Product instance
+ * @return string
+ * @since 0.1.1
+ */
+function get_product_category_line( $product ) {
+	$backcompat = version_compare( WC_VERSION, '3.0', '<' );
 
 	$_cats          = array();
 	$variation_data = $backcompat ? $product->variation_data : ( $product->is_type( 'variation' ) ? wc_get_product_variation_attributes( $product->get_id() ) : '' );
@@ -455,45 +558,5 @@ function get_product_data( $pid, $vid = '' ) {
 		}
 	}
 
-	$product_category = implode( '/', $_cats );
-
-	$replacement_keys = get_replacement_keys( 'product' );
-	foreach ( $replacement_keys as $key ) {
-		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
-	}
-
-	return $data;
-}
-
-/**
- * Return valid keys for per-event replacement data
- *
- * @param  string $event An event type slug, or a genericized version of same
- * @return array
- * @since 0.1.0
- */
-function get_replacement_keys( $event ) {
-	$keys = array();
-
-	// we primarily want to include event names for use in \Admin\get_replacement_help_text()
-	// but will also sometimes include shorthand for a shared get_foo_data() call above
-	switch ( $event ) {
-		case 'add_to_cart':
-		case 'product':
-			$keys = array( 'product_id', 'product_name', 'product_price', 'product_category', 'product_variation' );
-			break;
-		case 'product_view':
-			$keys = array( 'product_id', 'product_name', 'product_price', 'product_category' );
-			break;
-		case 'purchase':
-		case 'order':
-			$keys = array( 'currency', 'order_number', 'order_total', 'order_subtotal', 'order_discount', 'order_shipping', 'order_tax', 'payment_method', 'used_coupons', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
-			break;
-		case 'registration':
-		case 'customer':
-			$keys = array( 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
-			break;
-	}
-
-	return $keys;
+	return apply_filters( 'cnvrsn_trckng_product_category_line', implode( '/', $_cats ), $product, $_cats );
 }
