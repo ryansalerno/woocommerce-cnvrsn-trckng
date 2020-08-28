@@ -340,7 +340,7 @@ function sanitize_js( $js ) {
 /**
  * Fetch a bunch of order-related data for inclusion into the script
  *
- * @param  string $order_id WP order ID
+ * @param  int $order_id WP order ID
  * @return array
  * @since 0.1.0
  */
@@ -348,15 +348,13 @@ function get_purchase_data( $order_id ) {
 	$order = wc_get_order( $order_id );
 
 	// bail if not a valid order
-	if ( ! is_a( $order, 'WC_Order' ) ) { return; }
+	if ( ! is_a( $order, 'WC_Order' ) ) { return array(); }
 
 	// TODO: break this up and only fetch what's requested
 	// this overkill feels better than repeating the fetching code everywhere,
 	// but is less efficient than getting the minimal amount of data
 
 	$backcompat = version_compare( WC_VERSION, '3.0', '<' );
-
-	$data = array();
 
 	$currency       = $backcompat ? $order->get_order_currency() : $order->get_currency();
 	$order_number   = $order->get_order_number();
@@ -373,10 +371,7 @@ function get_purchase_data( $order_id ) {
 	$customer_first_name = $order->get_billing_first_name();
 	$customer_last_name  = $order->get_billing_last_name();
 
-	$replacement_keys = get_replacement_keys( 'order' );
-	foreach ( $replacement_keys as $key ) {
-		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
-	}
+	$data = @compact( get_replacement_keys( 'order' ) );
 
 	$data['_order_id'] = $order_id;
 	$data['_item_ids'] = array();
@@ -394,10 +389,8 @@ function get_purchase_data( $order_id ) {
  * @since 0.1.0
  */
 function get_user_data() {
-	$data = array();
-
 	$current_user = wp_get_current_user();
-	if ( ! ( $current_user instanceof WP_User ) ) { return $data; }
+	if ( ! ( $current_user instanceof WP_User ) ) { return array(); }
 
 	$customer_id         = $current_user->ID;
 	$customer_email      = $current_user->user_email;
@@ -406,10 +399,7 @@ function get_user_data() {
 	// $customer_username = esc_html( $current_user->user_login );
 	// $customer_display_name = esc_html( $current_user->display_name );
 
-	$replacement_keys = get_replacement_keys( 'customer' );
-	foreach ( $replacement_keys as $key ) {
-		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
-	}
+	$data = @compact( get_replacement_keys( 'customer' ) );
 
 	return $data;
 }
@@ -417,16 +407,14 @@ function get_user_data() {
 /**
  * Fetch a bunch of product-related data for inclusion into the script
  *
- * @param  object $pid WP product ID
+ * @param  int    $pid WP product ID
  * @param  string $vid Optional WP variation ID to use as an override
  * @return array
  * @since 0.1.0
  */
 function get_product_data( $pid, $vid = '' ) {
-	$data = array();
-
 	$product = wc_get_product( $vid ? $vid : $pid );
-	if ( ! is_a( $product, 'WC_Product' ) ) { return $data; }
+	if ( ! is_a( $product, 'WC_Product' ) ) { return array(); }
 
 	$product_id        = $product->get_sku() ? $product->get_sku() : $product->get_id();
 	$product_name      = $product->get_name();
@@ -434,10 +422,7 @@ function get_product_data( $pid, $vid = '' ) {
 	$product_permalink = $product->get_permalink();
 	$product_category  = get_product_category_line( $product );
 
-	$replacement_keys = get_replacement_keys( 'product' );
-	foreach ( $replacement_keys as $key ) {
-		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
-	}
+	$data = @compact( get_replacement_keys( 'product' ) );
 
 	return $data;
 }
@@ -450,7 +435,6 @@ function get_product_data( $pid, $vid = '' ) {
  */
 function get_cart_data() {
 	$cart = WC()->cart;
-	$data = array();
 
 	$currency      = get_woocommerce_currency();
 	$cart_total    = $cart ? $cart->total : 0;
@@ -467,10 +451,7 @@ function get_cart_data() {
 	$customer_first_name = $customer->get_first_name();
 	$customer_last_name  = $customer->get_last_name();
 
-	$replacement_keys = get_replacement_keys( 'cart' );
-	foreach ( $replacement_keys as $key ) {
-		if ( isset( $$key ) ) { $data[ $key ] = $$key; }
-	}
+	$data = @compact( get_replacement_keys( 'cart' ) );
 
 	$data['cart_items'] = array();
 
