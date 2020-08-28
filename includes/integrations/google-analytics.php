@@ -129,7 +129,7 @@ class GoogleAnalyticsIntegration extends Integration {
 	 * @since 0.2.0
 	 */
 	public function build_event_gtag( $event_name, $params = array(), $method = 'event' ) {
-		return sprintf( "gtag('%s', '%s', %s);", $method, $event_name, json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+		return sprintf( 'gtag("%s", "%s", %s);', $method, $event_name, json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 	}
 
 	/**
@@ -149,7 +149,7 @@ class GoogleAnalyticsIntegration extends Integration {
 		$params = $this->ga_param_translate( $params );
 		$params['step'] = 1;
 
-		$code .= sprintf( "ga('ec:setAction', 'checkout', %s);", json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+		$code .= sprintf( 'ga("ec:setAction", "checkout", %s);', json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 
 		return $code;
 	}
@@ -168,7 +168,7 @@ class GoogleAnalyticsIntegration extends Integration {
 		$code   = ! empty( $params['items'] ) ? $this->ga_items( $params['items'] ) : '';
 		$params = $this->ga_param_translate( $params );
 
-		$code .= sprintf( "ga('ec:setAction', 'purchase', %s);", json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+		$code .= sprintf( 'ga("ec:setAction", "purchase", %s);', json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 
 		return $code;
 	}
@@ -266,7 +266,7 @@ class GoogleAnalyticsIntegration extends Integration {
 	/**
 	 * Get product data, formatted as an array of params gtag expects
 	 *
-	 * @param  int $item_id WC order id
+	 * @param  WC_Product $item WC product object
 	 * @return array
 	 * @since 0.1.1
 	 */
@@ -327,7 +327,7 @@ class GoogleAnalyticsIntegration extends Integration {
 	/**
 	 * Event: Start Checkout
 	 *
-	 * @param array $order_data An array of key => values about our order
+	 * @param array $cart_data An array of key => values about our cart
 	 * @since 0.1.1
 	 */
 	public function start_checkout( $cart_data ) {
