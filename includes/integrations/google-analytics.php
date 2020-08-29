@@ -331,9 +331,6 @@ class GoogleAnalyticsIntegration extends Integration {
 	 * @since 0.1.1
 	 */
 	public function start_checkout( $cart_data ) {
-		$tracking_id = $this->get_plugin_settings( 'tracking_id' );
-		if ( ! $tracking_id ) { return; }
-
 		// value, currency, items, coupon
 		$params = array(
 			'value'          => $cart_data['cart_total'],
@@ -344,7 +341,7 @@ class GoogleAnalyticsIntegration extends Integration {
 
 		$code = $this->build_event( 'begin_checkout', $params );
 
-		Events\add_to_footer( $code );
+		$this->add_code( $code );
 	}
 
 	/**
@@ -354,9 +351,6 @@ class GoogleAnalyticsIntegration extends Integration {
 	 * @since 0.1.1
 	 */
 	public function purchase( $order_data ) {
-		$tracking_id = $this->get_plugin_settings( 'tracking_id' );
-		if ( ! $tracking_id ) { return; }
-
 		// transaction_id, value, currency, tax, shipping, items, coupon
 		$params = array(
 			'transaction_id' => $order_data['order_number'],
@@ -371,7 +365,7 @@ class GoogleAnalyticsIntegration extends Integration {
 		// https://developers.google.com/analytics/devguides/collection/gtagjs/enhanced-ecommerce#measure_purchases
 		$code = $this->build_event( 'purchase', $params );
 
-		Events\add_to_footer( $code );
+		$this->add_code( $code );
 	}
 
 	/**
@@ -382,5 +376,19 @@ class GoogleAnalyticsIntegration extends Integration {
 	 */
 	public function is_gtag() {
 		return $this->gtag;
+	}
+
+	/**
+	 * Wrapper for Events\add_to_footer() with any integration-specific escape hatches necessary
+	 *
+	 * @param  string $code Some user-entered code that needs to end up on the page
+	 * @return void
+	 * @since 0.2.1
+	 */
+	public function add_code( $code ) {
+		$tracking_id = $this->get_plugin_settings( 'tracking_id' );
+		if ( ! $tracking_id ) { return; }
+
+		Events\add_to_footer( $code );
 	}
 }

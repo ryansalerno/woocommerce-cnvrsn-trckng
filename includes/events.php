@@ -295,7 +295,7 @@ function enqueue_scripts() {
  * Render some code in the footer
  * (because wc_enqueue_js() requires jQuery and doesn't support tracking pixels or non-js content)
  *
- * @param string $code   Some user-entered code that needs replacements
+ * @param string $code   Some user-entered code that needs to end up on the page
  * @param string $format Either 'script' or 'kses', which controls the output formatting
  * @since 0.1.0
  */
