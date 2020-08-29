@@ -19,6 +19,8 @@ class GoogleAnalyticsIntegration extends Integration {
 		$this->name   = __( 'Google Analytics', 'woocommerce-cnvrsn-trckng' );
 		$this->events = array(
 			// https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce
+			'category_view',
+			'product_view',
 			'start_checkout',
 			'purchase',
 		);
@@ -105,6 +107,8 @@ class GoogleAnalyticsIntegration extends Integration {
 		$easy_gtags = array(
 			'purchase'       => 1,
 			'begin_checkout' => 1,
+			'view_item'      => 1,
+			'view_item_list' => 1,
 		);
 
 		if ( $tracker === 'gtag' && isset( $easy_gtags[$event_name] ) ) {
@@ -130,6 +134,41 @@ class GoogleAnalyticsIntegration extends Integration {
 	 */
 	public function build_event_gtag( $event_name, $params = array(), $method = 'event' ) {
 		return sprintf( 'gtag("%s", "%s", %s);', $method, $event_name, json_encode( $params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+	}
+
+	/**
+	 * Enhanced ecommerce product listing view
+	 *
+	 * @see: https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce#product-impression
+	 *
+	 * @param  array  $params An array of parameters about the event
+	 * @param  string $method [unused]
+	 * @return string
+	 * @since 0.2.1
+	 */
+	public function build_event_ga_view_item_list( $params = array(), $method = '' ) {
+		$code = ! empty( $params['items'] ) ? $this->ga_items( $params['items'], true ) : '';
+
+		return $code;
+	}
+
+	/**
+	 * Enhanced ecommerce product detail view
+	 *
+	 * @see: https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce#product-detail-view
+	 *
+	 * @param  array  $params An array of parameters about the event
+	 * @param  string $method [unused]
+	 * @return string
+	 * @since 0.2.1
+	 */
+	public function build_event_ga_view_item( $params = array(), $method = '' ) {
+		$code = ! empty( $params['items'] ) ? $this->ga_items( $params['items'] ) : '';
+		if ( empty( $code) ) { return ''; }
+
+		$code .= 'ga("ec:setAction", "detail");';
+
+		return $code;
 	}
 
 	/**
@@ -203,18 +242,43 @@ class GoogleAnalyticsIntegration extends Integration {
 	}
 
 	/**
+	 * Translate from gtag keys to ga keys
+	 *
+	 * @param  array $item key => value params
+	 * @return array
+	 * @since 0.2.1
+	 */
+	protected function ga_item_translate( $item ) {
+		$translated = array();
+
+		$replace = array(
+			'list_name'     => 'list',
+			'list_position' => 'position',
+		);
+
+		foreach ( $item as $key => $value ) {
+			$_key = isset( $replace[$key] ) ? $replace[$key] : $key;
+			$translated[$_key] = $value;
+		}
+
+		return $translated;
+	}
+
+	/**
 	 * Output as many ec:addProduct calls as needed
 	 * (after a certain number of products, it would be more compact to have a for loop in the JS, but....)
 	 *
 	 * @param  array $items as returned by our items_by_orderid() function
+	 * @param  bool  $is_impression (since 0.2.1)
 	 * @return array
 	 * @since 0.2.0
 	 */
-	protected function ga_items( $items ) {
-		$ec = '';
+	protected function ga_items( $items, $is_impression = false ) {
+		$ec  = '';
+		$add = $is_impression ? 'addImpression' : 'addProduct';
 
 		foreach ( (array) $items as $item ) {
-			$ec .= 'ga("ec:addProduct", ' . json_encode( $item, JSON_UNESCAPED_SLASHES ) . ');' . PHP_EOL;
+			$ec .= 'ga("ec:' . $add . '", ' . json_encode( $this->ga_item_translate( $item ), JSON_UNESCAPED_SLASHES ) . ');' . PHP_EOL;
 		}
 
 		return $ec;
@@ -266,21 +330,25 @@ class GoogleAnalyticsIntegration extends Integration {
 	/**
 	 * Get product data, formatted as an array of params gtag expects
 	 *
+	 * Note: since this could be a WC_Product or WC_Order_Item_Product,
+	 *       some methods need checking before calling
+	 *
 	 * @param  WC_Product $item WC product object
 	 * @return array
 	 * @since 0.1.1
 	 */
 	protected function item( $item ) {
-		$product = Events\get_product_data( $item->get_product_id() );
+		$pid = method_exists( $item, 'get_product_id' ) ? $item->get_product_id() : $item->get_id();
+		$product = Events\get_product_data( $pid );
 		if ( empty( $product['product_id'] ) ) { return; }
 
 		$item = array(
 			'id'       => isset( $product['product_id'] ) ? $product['product_id'] : '',
 			'name'     => isset( $product['product_name'] ) ? $product['product_name'] : '',
 			// 'brand' =>  '',
-			'quantity' => $item->get_quantity(),
-			'price'    => $item->get_total(),
 			'category' => isset( $product['product_category'] ) ? $product['product_category'] : '',
+			'quantity' => method_exists( $item, 'get_quantity' ) ? $item->get_quantity() : '',
+			'price'    => method_exists( $item, 'get_total' ) ? $item->get_total() : '',
 		);
 
 		return array_filter( $item );
@@ -322,6 +390,57 @@ class GoogleAnalyticsIntegration extends Integration {
 		wp_enqueue_script( 'cnvrsn-trckng-' . $this->id, $external_url, array(), null, true );
 
 		return $script;
+	}
+
+	/**
+	 * Event: Category View
+	 *
+	 * @param array $category_data An array of key => values about our category
+	 * @since 0.2.1
+	 */
+	public function category_view( $category_data ) {
+		// items -> id, name, list_name, brand, category, variant, list_position, price
+		$params = array(
+			'items' => array(),
+		);
+
+		$list_name = sprintf( '%s %s', _x( 'Category:', $this->id, 'woocommerce-cnvrsn-trckng' ), $category_data['category_name'] );
+
+		for ( $i = 0; $i < count( $category_data['_item_ids'] ); $i++ ) {
+			$product = $this->item( wc_get_product( $category_data['_item_ids'][$i] ) );
+
+			$product['list_name']     = $list_name;
+			$product['list_position'] = $i + 1; // compensate for zero-based arrays
+
+			$params['items'][] = $product;
+		}
+
+		$code = $this->build_event( 'view_item_list', $params );
+
+		$this->add_code( $code );
+	}
+
+	/**
+	 * Event: Product View
+	 *
+	 * @param array $product_data An array of key => values about our product
+	 * @since 0.2.1
+	 */
+	public function product_view( $product_data ) {
+		// items -> id, name, brand, category, variant, price
+		$params = array(
+			'items' => array(
+				'id'       => isset( $product_data['product_id'] ) ? $product_data['product_id'] : '',
+				'name'     => isset( $product_data['product_name'] ) ? $product_data['product_name'] : '',
+				// 'brand' =>  '',
+				'category' => isset( $product_data['product_category'] ) ? $product_data['product_category'] : '',
+				// 'price' =>  isset( $product_data['product_price'] ) ? $product_data['product_price'] : '',
+			),
+		);
+
+		$code = $this->build_event( 'view_item', $params );
+
+		$this->add_code( $code );
 	}
 
 	/**

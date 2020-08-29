@@ -178,10 +178,10 @@ function product_view() {
 /**
  * Do category view event
  *
- * @since 0.1.0
+ * @since 0.2.1
  */
 function category_view() {
-	dispatch_event( 'category_view' );
+	dispatch_event( 'category_view', get_category_data() );
 }
 
 /**
@@ -428,6 +428,37 @@ function get_product_data( $pid, $vid = '' ) {
 }
 
 /**
+ * Fetch a bunch of category-related data for inclusion into the script
+ *
+ * @param  int $cid WP category ID
+ * @return array
+ * @since 0.2.1
+ */
+function get_category_data() {
+	global $wp_query;
+
+	$category = $wp_query->get_queried_object();
+	$products = $wp_query->get_posts();
+
+	// this could be a real category, or could be the main shop page
+	if ( ! empty( $category->term_id ) ) {
+		$category_id        = $category->term_id;
+		$category_name      = html_entity_decode( $category->name );
+		$category_permalink = get_term_link( $category );
+	} else {
+		$category_id        = 0;
+		$category_name      = html_entity_decode( apply_filters( 'cnvrsn_trckng_category_name_for_shop_page', $category->labels->all_items, $category ) );
+		$category_permalink = get_post_type_archive_link( $category->name );
+	}
+
+	$data = @compact( get_replacement_keys( 'category' ) );
+
+	$data['_item_ids'] = wp_list_pluck( $products, 'ID' );
+
+	return $data;
+}
+
+/**
  * Fetch a bunch of cart-related data for inclusion into the script
  *
  * @return array
@@ -486,6 +517,11 @@ function get_replacement_keys( $event ) {
 	// we primarily want to include event names for use in \Admin\get_replacement_help_text()
 	// but will also sometimes include shorthand for a shared get_foo_data() call above
 	switch ( $event ) {
+		case 'category': // shorthand
+		case 'category_view':
+			$keys = array( 'category_id', 'category_name', 'category_permalink' );
+			break;
+
 		case 'product': // shorthand
 		case 'product_view':
 			$keys = array( 'product_id', 'product_name', 'product_price', 'product_category', 'product_variation', 'product_permalink' );
