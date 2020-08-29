@@ -233,9 +233,9 @@ class GoogleAnalyticsIntegration extends Integration {
 		foreach ( (array) $cart_items as $item ) {
 			$items[] = array(
 				'id'       => ! empty( $item['sku'] ) ? $item['sku'] : $item['id'],
-				'name'     => ! empty( $item['name'] ) ? html_entity_decode( $item['name'] ) : '',
+				'name'     => ! empty( $item['name'] ) ? $item['name'] : '',
 				// 'brand' =>  '',
-				'category' => ! empty( $item['category'] ) ? html_entity_decode( $item['category'] ) : '',
+				'category' => ! empty( $item['category'] ) ? $item['category'] : '',
 				'quantity' => $item['quantity'],
 				'price'    => $item['price'],
 			);
@@ -276,11 +276,11 @@ class GoogleAnalyticsIntegration extends Integration {
 
 		$item = array(
 			'id'       => isset( $product['product_id'] ) ? $product['product_id'] : '',
-			'name'     => isset( $product['product_name'] ) ? html_entity_decode( $product['product_name'] ) : '',
+			'name'     => isset( $product['product_name'] ) ? $product['product_name'] : '',
 			// 'brand' =>  '',
-			'category' => isset( $product['product_category'] ) ? html_entity_decode( $product['product_category'] ) : '',
 			'quantity' => $item->get_quantity(),
 			'price'    => $item->get_total(),
+			'category' => isset( $product['product_category'] ) ? $product['product_category'] : '',
 		);
 
 		return array_filter( $item );

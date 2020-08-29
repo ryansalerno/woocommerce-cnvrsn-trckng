@@ -417,7 +417,7 @@ function get_product_data( $pid, $vid = '' ) {
 	if ( ! is_a( $product, 'WC_Product' ) ) { return array(); }
 
 	$product_id        = $product->get_sku() ? $product->get_sku() : $product->get_id();
-	$product_name      = $product->get_name();
+	$product_name      = html_entity_decode( $product->get_name() );
 	$product_price     = $product->get_price();
 	$product_permalink = $product->get_permalink();
 	$product_category  = get_product_category_line( $product );
@@ -462,7 +462,7 @@ function get_cart_data() {
 		$data['cart_items'][] = array(
 			'id'        => $product->get_id(),
 			'sku'       => $product->get_sku(),
-			'name'      => $product->get_name(),
+			'name'      => html_entity_decode( $product->get_name() ),
 			'permalink' => apply_filters( 'woocommerce_cart_item_permalink', $product->is_visible() ? $product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key ),
 			'category'  => get_product_category_line( $product ),
 			'price'     => $cart_item['line_total'],
@@ -535,7 +535,7 @@ function get_product_category_line( $product ) {
 
 	if ( $categories ) {
 		foreach ( $categories as $category ) {
-			$_cats[] = $category->name;
+			$_cats[] = html_entity_decode( $category->name );
 		}
 	}
 
