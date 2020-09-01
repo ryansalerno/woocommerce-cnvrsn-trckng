@@ -21,6 +21,8 @@ class GoogleAnalyticsIntegration extends Integration {
 			// https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce
 			'category_view',
 			'product_view',
+			'add_to_cart',
+			'remove_from_cart',
 			'start_checkout',
 			'purchase',
 		);
@@ -105,10 +107,12 @@ class GoogleAnalyticsIntegration extends Integration {
 	public function build_event( $event_name, $params = array(), $method = 'event' ) {
 		$tracker    = $this->is_gtag() ? 'gtag' : 'ga';
 		$easy_gtags = array(
-			'purchase'       => 1,
-			'begin_checkout' => 1,
-			'view_item'      => 1,
-			'view_item_list' => 1,
+			'purchase'         => 1,
+			'begin_checkout'   => 1,
+			'view_item'        => 1,
+			'view_item_list'   => 1,
+			'add_to_cart'      => 1,
+			'remove_from_cart' => 1,
 		);
 
 		if ( $tracker === 'gtag' && isset( $easy_gtags[$event_name] ) ) {
@@ -125,6 +129,8 @@ class GoogleAnalyticsIntegration extends Integration {
 
 	/**
 	 * Re-usable gtag events
+	 *
+	 * @see: https://developers.google.com/analytics/devguides/collection/gtagjs/enhanced-ecommerce
 	 *
 	 * @param  string $event_name Google Analytics event name
 	 * @param  array  $params An array of parameters about the event
@@ -167,6 +173,44 @@ class GoogleAnalyticsIntegration extends Integration {
 		if ( empty( $code) ) { return ''; }
 
 		$code .= 'ga("ec:setAction", "detail");';
+
+		return $code;
+	}
+
+	/**
+	 * Enhanced ecommerce add to cart
+	 *
+	 * @see: https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce#add-remove-cart
+	 *
+	 * @param  array  $params An array of parameters about the event
+	 * @param  string $method [unused]
+	 * @return string
+	 * @since 0.3.0
+	 */
+	public function build_event_ga_add_to_cart( $params = array(), $method = '' ) {
+		$code = ! empty( $params['items'] ) ? $this->ga_items( $params['items'] ) : '';
+		if ( empty( $code) ) { return ''; }
+
+		$code .= 'ga("ec:setAction", "add");';
+
+		return $code;
+	}
+
+	/**
+	 * Enhanced ecommerce remove from cart
+	 *
+	 * @see: https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce#add-remove-cart
+	 *
+	 * @param  array  $params An array of parameters about the event
+	 * @param  string $method [unused]
+	 * @return string
+	 * @since 0.3.0
+	 */
+	public function build_event_ga_remove_from_cart( $params = array(), $method = '' ) {
+		$code = ! empty( $params['items'] ) ? $this->ga_items( $params['items'] ) : '';
+		if ( empty( $code) ) { return ''; }
+
+		$code .= 'ga("ec:setAction", "remove");';
 
 		return $code;
 	}
@@ -439,6 +483,78 @@ class GoogleAnalyticsIntegration extends Integration {
 		);
 
 		$code = $this->build_event( 'view_item', $params );
+
+		$this->add_code( $code );
+	}
+
+	/**
+	 * Event: Add to Cart (defer until next pageload)
+	 *
+	 * @param array $add_data An array of key => values about our product
+	 * @since 0.3.0
+	 */
+	public function add_to_cart( $add_data ) {
+		$this->defer_event( $add_data );
+	}
+
+	/**
+	 * Event: Add to Cart (actually dispatch)
+	 *
+	 * @param array $add_data An array of key => values about our product
+	 * @since 0.3.0
+	 */
+	public function add_to_cart_deferred( $add_data ) {
+		// value, currency, items
+		$params = array(
+			// 'value'    => $add_data['cart_total'], // ?
+			'currency' => $add_data['currency'],
+			'items'    => array( array(
+				'id'       => isset( $add_data['product_id'] ) ? $add_data['product_id'] : '',
+				'name'     => isset( $add_data['product_name'] ) ? $add_data['product_name'] : '',
+				// 'brand' =>  '',
+				'category' => isset( $add_data['product_category'] ) ? $add_data['product_category'] : '',
+				'quantity' => isset( $add_data['qty'] ) ? $add_data['qty'] : 1,
+				'price'    => isset( $add_data['cart_price'] ) ? $add_data['cart_price'] : $add_data['product_price'],
+			) ),
+		);
+
+		$code = $this->build_event( 'add_to_cart', $params );
+
+		$this->add_code( $code );
+	}
+
+	/**
+	 * Event: Remove from Cart (defer until next pageload)
+	 *
+	 * @param array $remove_data An array of key => values about our product
+	 * @since 0.3.0
+	 */
+	public function remove_from_cart( $remove_data ) {
+		$this->defer_event( $remove_data );
+	}
+
+	/**
+	 * Event: Remove from Cart (actually dispatch)
+	 *
+	 * @param array $remove_data An array of key => values about our product
+	 * @since 0.3.0
+	 */
+	public function remove_from_cart_deferred( $remove_data ) {
+		// value, currency, items
+		$params = array(
+			// 'value'    => $remove_data['cart_total'], // ?
+			'currency' => $remove_data['currency'],
+			'items'    => array( array(
+				'id'       => isset( $remove_data['product_id'] ) ? $remove_data['product_id'] : '',
+				'name'     => isset( $remove_data['product_name'] ) ? $remove_data['product_name'] : '',
+				// 'brand' =>  '',
+				'category' => isset( $remove_data['product_category'] ) ? $remove_data['product_category'] : '',
+				'quantity' => isset( $remove_data['qty'] ) ? $remove_data['qty'] : 1,
+				'price'    => isset( $remove_data['cart_price'] ) ? $remove_data['cart_price'] : $remove_data['product_price'],
+			) ),
+		);
+
+		$code = $this->build_event( 'remove_from_cart', $params );
 
 		$this->add_code( $code );
 	}

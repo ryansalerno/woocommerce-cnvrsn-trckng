@@ -27,14 +27,15 @@ function setup() {
  */
 function supported_events() {
 	$default_events = array(
-		'product_view'   => __( 'Product View', 'woocommerce-cnvrsn-trckng' ),
-		'category_view'  => __( 'Category View', 'woocommerce-cnvrsn-trckng' ),
-		'add_to_cart'    => __( 'Add to Cart', 'woocommerce-cnvrsn-trckng' ),
-		'start_checkout' => __( 'Start Checkout', 'woocommerce-cnvrsn-trckng' ),
-		'purchase'       => __( 'Successful Purchase', 'woocommerce-cnvrsn-trckng' ),
-		'registration'   => __( 'User Registration', 'woocommerce-cnvrsn-trckng' ),
-		'search'         => __( 'Search', 'woocommerce-cnvrsn-trckng' ),
-		'wishlist'       => __( 'Add to Wishlist', 'woocommerce-cnvrsn-trckng' ),
+		'product_view'     => __( 'Product View', 'woocommerce-cnvrsn-trckng' ),
+		'category_view'    => __( 'Category View', 'woocommerce-cnvrsn-trckng' ),
+		'add_to_cart'      => __( 'Add to Cart', 'woocommerce-cnvrsn-trckng' ),
+		'remove_from_cart' => __( 'Remove from Cart', 'woocommerce-cnvrsn-trckng' ),
+		'start_checkout'   => __( 'Start Checkout', 'woocommerce-cnvrsn-trckng' ),
+		'purchase'         => __( 'Successful Purchase', 'woocommerce-cnvrsn-trckng' ),
+		'registration'     => __( 'User Registration', 'woocommerce-cnvrsn-trckng' ),
+		'search'           => __( 'Search', 'woocommerce-cnvrsn-trckng' ),
+		'wishlist'         => __( 'Add to Wishlist', 'woocommerce-cnvrsn-trckng' ),
 	);
 
 	return apply_filters( 'cnvrsn_trckng_supported_events', $default_events );
@@ -97,10 +98,28 @@ function add_actions() {
 		add_action( 'woocommerce_after_shop_loop', __NAMESPACE__ . '\category_view' );
 	}
 
-	// cart and checkout
+	// cart
 	if ( isset( $active_events['add_to_cart'] ) ) {
+		// this event doesn't correspond to a page of its own, so it's more complicated....
+		// instead of hooking into several actions to capture all the permutations of cart
+		// events WC makes available, or resorting to on-page button click-hijacking or ajax-listening
+		// we can tap into the serverside processing of the event and then (optionally)
+		// defer the action until the next page load for JS snippets and other client-side integrations
+
+		// this means you could lose the event if there isn't a subsequent pageload
+		// but if someone adds to cart and then bails, that feels like an acceptable loss
 		add_action( 'woocommerce_add_to_cart', __NAMESPACE__ . '\add_to_cart', 9999, 6 );
+
+		// TODO: re-add on restore?
+		// TODO: should increasing quantity count as an add to cart event?
 	}
+	if ( isset( $active_events['remove_from_cart'] ) ) {
+		add_action( 'woocommerce_cart_item_removed', __NAMESPACE__ . '\remove_from_cart', 10, 2 );
+
+		// TODO: should decreasing quantity count as a remove from cart event?
+	}
+
+	// checkout
 	if ( isset( $active_events['start_checkout'] ) ) {
 		add_action( 'woocommerce_after_checkout_form', __NAMESPACE__ . '\start_checkout' );
 	}
@@ -137,16 +156,54 @@ function add_actions() {
  * @param  int    $product_id WP ID of the product
  * @param  int    $quantity The quantity added
  * @param  int    $variation_id WP ID of the variation, or 0
- * @param  object $variation Variation data, when applicablt
- * @param  object $cart_item_data Abtract of cart data
- * @since 0.1.0
+ * @param  array  $variation Variation data, when applicable
+ * @param  array  $cart_item_data Optional extra cart data
+ * @since 0.3.0
  */
 function add_to_cart( $cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ) {
 	$product_data = get_product_data( $product_id, $variation_id );
 	$cart_data    = array(
-		'qty' => $quantity,
+		'currency' => get_woocommerce_currency(),
+		'qty'      => $quantity,
 	);
+
+	// we ought to set a price, but is it better to prefer the product's natural price,
+	// or the price as reflected in the cart (somehow)?
+	// intuition tells me the cart price is more important, but WC doesn't give us that directly
+	// we could calculate it here, but it's possible we could introduce some edge case errors...
+	// but maybe that's better than not providing a price at all?
+
+	$cart_item = WC()->cart->get_cart_item( $cart_item_key );
+	if ( ! empty( $cart_item['line_total'] ) ) {
+		$cart_data['cart_price'] = round( $cart_item['line_total'] / $cart_item['quantity'], 2 );
+	}
+
 	dispatch_event( 'add_to_cart', array_merge( $product_data, $cart_data ) );
+}
+
+/**
+ * Do remove from cart event
+ *
+ * @param  string  $cart_item_key Hashed cart item key
+ * @param  WC_Cart $cart Full WC Cart class
+ * @since 0.3.0
+ */
+function remove_from_cart( $cart_item_key, $cart ) {
+	$cart_item = $cart->removed_cart_contents[$cart_item_key];
+	if ( empty( $cart_item['product_id'] ) ) { return; }
+
+	$variation_id = ! empty( $cart_item['variation_id'] ) ? $cart_item['variation_id'] : '';
+	$product_data = get_product_data( $cart_item['product_id'], $variation_id );
+	$cart_data    = array(
+		'currency' => get_woocommerce_currency(),
+		'qty'      => ! empty( $cart_item['quantity'] ) ? $cart_item['quantity'] : 1,
+	);
+
+	if ( ! empty( $cart_item['line_total'] ) ) {
+		$cart_data['cart_price'] = round( $cart_item['line_total'] / $cart_item['quantity'], 2 );
+	}
+
+	dispatch_event( 'remove_from_cart', array_merge( $product_data, $cart_data ) );
 }
 
 /**
