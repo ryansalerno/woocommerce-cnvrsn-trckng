@@ -429,13 +429,13 @@ class GoogleAnalyticsIntegration extends Integration {
 	public function product_view( $product_data ) {
 		// items -> id, name, brand, category, variant, price
 		$params = array(
-			'items' => array(
+			'items' => array( array(
 				'id'       => isset( $product_data['product_id'] ) ? $product_data['product_id'] : '',
 				'name'     => isset( $product_data['product_name'] ) ? $product_data['product_name'] : '',
 				// 'brand' =>  '',
 				'category' => isset( $product_data['product_category'] ) ? $product_data['product_category'] : '',
 				// 'price' =>  isset( $product_data['product_price'] ) ? $product_data['product_price'] : '',
-			),
+			) ),
 		);
 
 		$code = $this->build_event( 'view_item', $params );
