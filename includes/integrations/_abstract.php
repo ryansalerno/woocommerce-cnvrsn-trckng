@@ -184,6 +184,8 @@ abstract class Integration {
 	public function event_enabled( $event ) {
 		$events = $this->get_plugin_settings( 'events' );
 
+		$event = str_replace( '_deferred', '', $event );
+
 		if ( ! $events || ! isset( $events[ $event ] ) ) { return false; }
 
 		return $events[ $event ];
@@ -235,5 +237,26 @@ abstract class Integration {
 		}
 
 		return $code;
+	}
+
+	/**
+	 * Some events (like add_to_cart) happen between pageloads, so this will let an integration
+	 * capture and process some data and then defer it until the next available wp_footer
+	 *
+	 * @param  array  $event_data Some data we need to hold onto for a minute
+	 * @return void
+	 * @since 0.3.0
+	 */
+	protected function defer_event( $event_data ) {
+		$event = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 2 )[1]['function'];
+
+		// allow some local logic to cancel running the event here
+		$data = apply_filters( 'cnvrsn_trckng_deferred_' . $this->id . '_' . $event . '_data', $event_data );
+		if ( ! $data ) { return; }
+
+		$_data['event'] = $event;
+		$_data['data']  = $data;
+
+		WC()->session->set( 'cnvrsn_trckng_deferred_event', $_data );
 	}
 }

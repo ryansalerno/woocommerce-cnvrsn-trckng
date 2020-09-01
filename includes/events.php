@@ -126,6 +126,8 @@ function add_actions() {
 		add_filter( 'yith_wcwl_added_to_wishlist', __NAMESPACE__ . '\wishlist' );
 		add_action( 'woocommerce_wishlist_add_item', __NAMESPACE__ . '\wishlist' );
 	}
+
+	add_action( 'wp_footer', __NAMESPACE__ . '\deferred_event' );
 }
 
 /**
@@ -243,6 +245,25 @@ function search( $query ) {
  */
 function wishlist() {
 	dispatch_event( 'wishlist' );
+}
+
+/**
+ * Dig up a deferred event and fire it
+ *
+ * @since 0.3.0
+ */
+function deferred_event() {
+	// WC_Session isn't available at plugins_loaded so we can't conditionally check this before adding the action that gets us here
+	if ( ! WC()->session->__isset( 'cnvrsn_trckng_deferred_event' ) ) { return; }
+
+	$deferred = WC()->session->get( 'cnvrsn_trckng_deferred_event' );
+
+	// we delete our key immediately, so even if validation fails the session key goes away instead of checking and failing endlessly
+	WC()->session->__unset( 'cnvrsn_trckng_deferred_event' );
+
+	if ( empty( $deferred['event'] ) || empty( $deferred['data'] ) ) { return; }
+
+	dispatch_event( $deferred['event'] . '_deferred', $deferred['data'] );
 }
 
 /**
