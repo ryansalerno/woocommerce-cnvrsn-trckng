@@ -81,7 +81,14 @@ class CustomIntegration extends Integration {
 
 		if ( isset( $integration['codes'] ) && is_array( $integration['codes'] ) ) {
 			foreach ( $integration['codes'] as $event => $code ) {
-				@$cleaned['integrations'][ $this->id ]['codes'][ esc_attr( $event ) ] = wp_kses( $code, 'post' );
+				// TODO: what's the best option here?
+
+				// kses will strip tags, and we could whitelist <script> and src="" but not every possible custom data-attribute
+				// WP will take care of sanitizing before saving to the DB, but any checks I can think of here seem too restrictive
+
+				// maybe a shortcode (ugh), or maybe some kind of builder UI with src fields and JS fields and markup fields (for pixels)
+				// so each can be handled individually as needed? that'll be a *project* to make not cumbersome and confusing, though
+				@$cleaned['integrations'][ $this->id ]['codes'][ esc_attr( $event ) ] = $code;
 			}
 		}
 
@@ -100,6 +107,6 @@ class CustomIntegration extends Integration {
 
 		if ( empty( $codes[ $event ] ) ) { return; }
 
-		Events\add_to_footer( $this->dynamic_data_replacement( $codes[ $event ], $data ), 'kses' );
+		Events\add_to_footer( $this->dynamic_data_replacement( $codes[ $event ], $data ), 'unsafe' ); // ¯\_(ツ)_/¯
 	}
 }
