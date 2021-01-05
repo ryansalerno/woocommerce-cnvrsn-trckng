@@ -98,6 +98,7 @@ class GoogleAdsIntegration extends Integration {
 		$labels = $this->get_plugin_settings( 'labels' );
 
 		echo '<h3>' . esc_html__( 'Event Labels:', 'woocommerce-cnvrsn-trckng' ) . '</h3>';
+		echo '<p class="help">' . wp_kses( __( 'This is the hash Google creates and associates with your event. It\'s most findable in the conversion snippet <a href="https://support.google.com/google-ads/answer/7548399#Eventsnippet">generated for GTM</a>, like <code>\'send_to\': \'AW-123456789/<strong>ABcDefGHij8675309ETc</strong>\'</code>.', 'woocommerce-cnvrsn-trckng' ), 'post' ) . '</p>';
 		foreach ( $this->get_events() as $event ) {
 			$value = isset( $labels[ esc_attr( $event ) ] ) ? $labels[ esc_attr( $event ) ] : '';
 			?>

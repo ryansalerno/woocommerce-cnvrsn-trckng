@@ -198,7 +198,7 @@ abstract class Integration {
 	 * @return mixed|false
 	 * @since 0.1.0
 	 */
-	protected function get_plugin_settings( $key = '' ) {
+	public function get_plugin_settings( $key = '' ) {
 		$settings = Admin\get_settings();
 
 		if ( ! isset( $settings['integrations'][ $this->id ] ) ) { return false; }

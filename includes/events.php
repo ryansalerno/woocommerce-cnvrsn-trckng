@@ -326,13 +326,19 @@ function deferred_event() {
 /**
  * Try to dispatch an event if an active integration supports it
  *
- * @param string $event An event type slug
- * @param mixed  $value Optional data to pass along
+ * @param string $event    An event type slug
+ * @param mixed  $value    Optional data to pass along
+ * @param string $callback Specific function to call (for custom events)
  * @since 0.1.0
  */
-function dispatch_event( $event, $value = '' ) {
+function dispatch_event( $event, $value = '', $callback = false ) {
 	foreach ( IntegrationManager::active_integrations() as $integration ) {
 		if ( ! $integration->event_enabled( $event ) ) { continue; }
+
+		if ( $callback && is_callable( $callback ) ) {
+			$callback( $value, $integration );
+			continue;
+		}
 
 		if ( method_exists( $integration, $event ) ) {
 			$integration->$event( $value );
