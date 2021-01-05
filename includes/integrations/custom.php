@@ -18,8 +18,12 @@ class CustomIntegration extends Integration {
 		$this->id     = 'custom';
 		$this->name   = __( 'Custom', 'woocommerce-cnvrsn-trckng' );
 		$this->events = array(
-			'purchase',
+			'category_view',
 			'product_view',
+			'add_to_cart',
+			'remove_from_cart',
+			'start_checkout',
+			'purchase',
 			'registration',
 		);
 

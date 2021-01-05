@@ -611,8 +611,12 @@ function get_replacement_keys( $event ) {
 			$keys = array( 'product_id', 'product_name', 'product_price', 'product_category', 'product_variation', 'product_permalink' );
 			break;
 
-		case 'cart': // shorthand
 		case 'add_to_cart':
+		case 'remove_from_cart':
+			$keys = array( 'product_id', 'product_name', 'product_price', 'product_category', 'product_variation', 'product_permalink', 'qty', 'currency' );
+			break;
+
+		case 'cart': // shorthand
 		case 'start_checkout':
 			$keys = array( 'currency', 'cart_total', 'cart_subtotal', 'cart_discount', 'cart_shipping', 'cart_tax', 'coupons', 'cart_count', 'customer_id', 'customer_email', 'customer_first_name', 'customer_last_name' );
 			break;
