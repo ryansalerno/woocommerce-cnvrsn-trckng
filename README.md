@@ -25,7 +25,7 @@ Despite Google's docs, the older `analytics.js` is better than using `gtag` for 
 
 Ads really wants you to use `gtag`, so in the event you enable both Analytics and Ads, the plugin switches to only using `gtag` and combines the setup code into one block with no extraneous HTTP requests.
 
-I am bad at Ads, so I've only enabled the `purchase` event, preferring to get the rest from an Analytics connection where I am more comfortable with how things work. Purchase works well, though, and [adding a custom event](https://github.com/ryansalerno/woocommerce-cnvrsn-trckng/wiki/Adding-a-custom-event) is straightforward.
+I am bad at Ads, so I've only enabled the `purchase` event, preferring to get the rest from an Analytics connection where I am more comfortable with how things work. Purchase works well, though, and [adding a custom event](blob/develop/docs/adding-a-custom-event.md) is straightforward.
 
 If someone smarter than me would like to point me in some right directions, this could be extended pretty easily.
 
