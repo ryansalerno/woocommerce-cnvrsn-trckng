@@ -49,20 +49,20 @@ function supported_events() {
  */
 function active_events() {
 	$settings = Admin\get_settings();
-
+	
 	$enabled = array();
-
+	
 	if ( ! isset( $settings['integrations'] ) ) { return $enabled; }
-
+	
 	foreach ( $settings['integrations'] as $integration ) {
 		if ( ! isset( $integration['events'] ) ) { continue; }
-
+		
 		foreach ( $integration['events'] as $event => $bool ) {
 			if ( $bool ) { $enabled[ $event ] = 1; }
 		}
 	}
-
-	return $enabled;
+	
+	return apply_filters( 'cnvrsn_trckng_active_events', $enabled );
 }
 
 /**
@@ -332,8 +332,13 @@ function deferred_event() {
  * @since 0.1.0
  */
 function dispatch_event( $event, $value = '', $callback = false ) {
+	do_action( 'cnvrsn_trckng_dispatch_event_' . $event, $value );
+
 	foreach ( IntegrationManager::active_integrations() as $integration ) {
 		if ( ! $integration->event_enabled( $event ) ) { continue; }
+
+		// TODO: I think the ability to null the data is enough, but if we need to get into the weeds, I'm leaving this here
+		// if ( apply_filters( 'cnvrsn_trckng_event_override_' . $integration->get_id() . '_' . $event, false, $value, $integration ) ) { continue; }
 
 		if ( $callback && is_callable( $callback ) ) {
 			$callback( $value, $integration );

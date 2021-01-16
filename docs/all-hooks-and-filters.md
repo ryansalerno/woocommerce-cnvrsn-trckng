@@ -7,7 +7,14 @@ This fires inside our static IntegrationManager after initially loading all inte
 ### `cnvrsn_trckng_{$INTEGRATION_ID}_render_settings_first` and `cnvrsn_trckng_{$INTEGRATION_ID}_render_settings_last`
 **Parameters:** none
 
-These settings-related actions fire inside an integrations settings card and allow you to insert your own settings fields. `first` fires before the Event checkboxen, and `last` fires after them. Note that we're using the WordPress Settings API, so you'll need to [add_settings_field()](https://developer.wordpress.org/reference/functions/add_settings_field/) here and not just try to output HTML.
+These settings-related actions fire inside an integration's settings card and allow you to insert your own settings fields. `first` fires before the Event checkboxen, and `last` fires after them. Note that we're using the WordPress Settings API, so you'll need to [add_settings_field()](https://developer.wordpress.org/reference/functions/add_settings_field/) here and not just try to output HTML.
+
+### `cnvrsn_trckng_dispatch_event_{$EVENT}`
+**Parameter:** `$data` (array)
+
+If you need to do something for an event outside the context of a specific integration (for instance, to just run a function on `purchase` without wiring up a whole custom integration), this is a generic event that passes along the relevant data that's already been pulled.
+
+*Note that events only fire in the first place if there is at least one active integration that has the event in question enabled*. See the [active events filter](#cnvrsn_trckng_active_events) if you need a way around this.
 
 # Filters
 
@@ -38,6 +45,11 @@ This allows you to [add custom events](adding-a-custom-event.md#1-define-the-eve
 This allows you to [add custom events](adding-a-custom-event.md#2-add-the-event-to-an-integration) to an integration, or conditionally remove events that might be checked in the settings but undesirable in some specific situation.
 
 Regardless of what you add in this single filter, only *globally supported events* (☝️) will actually end up surviving.
+
+### `cnvrsn_trckng_active_events`
+**Parameter:** `$enabled_events` (array of slugs => 1)
+
+Typically, active events follow the plugin's settings, and only events that are enabled inside at least one active integration will fire. If you're trying to force an event that isn't attached to an existing integration to fire, you can slide it in here.
 
 ***
 
