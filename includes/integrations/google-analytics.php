@@ -380,22 +380,24 @@ class GoogleAnalyticsIntegration extends Integration {
 	 * @param  WC_Product $item WC product object
 	 * @return array
 	 * @since 0.1.1
+	 * @since 0.5.6 filterable results
 	 */
 	protected function item( $item ) {
 		$pid = method_exists( $item, 'get_product_id' ) ? $item->get_product_id() : $item->get_id();
 		$product = Events\get_product_data( $pid );
 		if ( empty( $product['product_id'] ) ) { return; }
 
-		$item = array(
+		$data = array(
 			'id'       => isset( $product['product_id'] ) ? $product['product_id'] : '',
 			'name'     => isset( $product['product_name'] ) ? $product['product_name'] : '',
-			// 'brand' =>  '',
+			// 'brand' => '',
+			// 'variant' => '',
 			'category' => isset( $product['product_category'] ) ? $product['product_category'] : '',
 			'quantity' => method_exists( $item, 'get_quantity' ) ? $item->get_quantity() : '',
 			'price'    => method_exists( $item, 'get_total' ) ? $item->get_total() : '',
 		);
 
-		return array_filter( $item );
+		return array_filter( apply_filters( 'cnvrsn_trckng_' . $this->id . '_item_data', $data, $product, $item ) );
 	}
 
 	/**
