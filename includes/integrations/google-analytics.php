@@ -381,6 +381,7 @@ class GoogleAnalyticsIntegration extends Integration {
 	 * @return array
 	 * @since 0.1.1
 	 * @since 0.5.6 filterable results
+	 * @since 0.5.7 stop over-reporting price for multiple qty line-items (to my great shame)
 	 */
 	protected function item( $item ) {
 		$pid = method_exists( $item, 'get_product_id' ) ? $item->get_product_id() : $item->get_id();
@@ -394,7 +395,7 @@ class GoogleAnalyticsIntegration extends Integration {
 			// 'variant' => '',
 			'category' => isset( $product['product_category'] ) ? $product['product_category'] : '',
 			'quantity' => method_exists( $item, 'get_quantity' ) ? $item->get_quantity() : '',
-			'price'    => method_exists( $item, 'get_total' ) ? $item->get_total() : '',
+			'price'    => method_exists( $item, 'get_total' ) && method_exists( $item, 'get_quantity' ) ? ( $item->get_total() / $item->get_quantity() ) : '',
 		);
 
 		return array_filter( apply_filters( 'cnvrsn_trckng_' . $this->id . '_item_data', $data, $product, $item ) );
