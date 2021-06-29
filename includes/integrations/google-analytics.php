@@ -103,6 +103,7 @@ class GoogleAnalyticsIntegration extends Integration {
 	 * @param  string $method Google Analytics method to pass
 	 * @return string
 	 * @since 0.1.1
+	 * @since 0.5.8 filterable params
 	 */
 	public function build_event( $event_name, $params = array(), $method = 'event' ) {
 		$tracker    = $this->is_gtag() ? 'gtag' : 'ga';
@@ -115,9 +116,11 @@ class GoogleAnalyticsIntegration extends Integration {
 			'remove_from_cart' => 1,
 		);
 
+		$params = apply_filters( 'cnvrsn_trckng_' . $this->id . '_' . $event_name . '_data', $params, $tracker, $method );
+
 		if ( $tracker === 'gtag' && isset( $easy_gtags[$event_name] ) ) {
 			// gtag has a simple call structure, so we can re-use this function most of the time
-			return $this->build_event_gtag( $event_name,  $params, $method );
+			return $this->build_event_gtag( $event_name, $params, $method );
 		} else {
 			// ga:ec actions are more complicated and require some hoop jumping
 			// (this also allows us to have gtag-specific routines if necessary)

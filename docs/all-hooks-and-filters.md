@@ -62,6 +62,11 @@ The `defer_event()` function allows an integration to capture events between pag
 
 Here you can fiddle with the data before it's stored (and subsequently pulled out for use). Notably, you can return a [falsy value](https://www.php.net/manual/en/language.types.boolean.php#language.types.boolean.casting) to cancel the deferring entirely.
 
+### `cnvrsn_trckng_google-analytics_{$EVENT}_data`
+**Parameters:** `$data` (array), `$tracker` (string, `gtag` or `ga`), `$method` (string, probably `event`)
+
+Modify event data before it gets dispatched to the specific function that sends it to GA. This is set up early so as to be the most generic, which is useful for you but tricky to provide specific examples of from here.... (Data object references: [gtag](https://developers.google.com/analytics/devguides/collection/gtagjs/enhanced-ecommerce), [analytics.js](https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce))
+
 ### `cnvrsn_trckng_google-analytics_item_data`
 **Parameters:** `$data` (array), `$product` (array from `Events\get_product_data()`), `$item` (WC_Product or WC_Order_Item_Product)
 
