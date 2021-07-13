@@ -49,19 +49,19 @@ function supported_events() {
  */
 function active_events() {
 	$settings = Admin\get_settings();
-	
+
 	$enabled = array();
-	
+
 	if ( ! isset( $settings['integrations'] ) ) { return $enabled; }
-	
+
 	foreach ( $settings['integrations'] as $integration ) {
 		if ( ! isset( $integration['events'] ) ) { continue; }
-		
+
 		foreach ( $integration['events'] as $event => $bool ) {
 			if ( $bool ) { $enabled[ $event ] = 1; }
 		}
 	}
-	
+
 	return apply_filters( 'cnvrsn_trckng_active_events', $enabled );
 }
 
@@ -220,9 +220,18 @@ function start_checkout() {
  *
  * @param int $order_id WP order ID
  * @since 0.1.0
+ * @since 0.6.0 Force atomicity of event dispatches
  */
 function purchase( $order_id ) {
-	dispatch_event( 'purchase', get_purchase_data( $order_id ) );
+	$data = get_purchase_data( $order_id );
+
+	// NOTE: I can't think of a reason why you'd want anything happening here to happen more than once,
+	//       but we're not offering any granularity about integrations or events and maybe we ought to?
+	if ( did_dispatch( 'purchase', $order_id, $data ) ) { return; }
+
+	dispatch_event( 'purchase', $data );
+
+	force_atomicity( 'purchase', $order_id, $data );
 }
 
 /**
@@ -669,4 +678,54 @@ function get_product_category_line( $product ) {
 	}
 
 	return apply_filters( 'cnvrsn_trckng_product_category_line', implode( '/', $_cats ), $product, $_cats );
+}
+
+/**
+ * Store a representation of an event to be able to prevent it from firing more than once
+ *
+ * @param  string $event An event type slug
+ * @param  int    $id    WP object ID
+ * @param  array  $data  Product data, for hashing and verifying uniqueness
+ * @return void
+ * @since 0.6.0
+ */
+function force_atomicity( $event, $id, $data ) {
+	if ( ! get_post_type( $id ) ) { return; }
+
+	$hash = hash_data( $data );
+
+	// NOTE: we're not checking for collisions here, so make sure you've returned as appropriate before calling this
+
+	update_post_meta( $id, '_cnvrsn_trckng_event_' . esc_attr( $event ), $hash );
+}
+
+/**
+ * Check a stored event representation to determine if we've been here before
+ *
+ * @param  string  $event        An event type slug
+ * @param  int     $id           WP object ID
+ * @param  array   $data         Product data, for hashing and verifying uniqueness
+ * @return boolean $did_dispatch Whether this event (with this data) has already fired
+ * @since 0.6.0
+ */
+function did_dispatch( $event, $id, $data ) {
+	$stored = get_post_meta( $id, '_cnvrsn_trckng_event_' . esc_attr( $event ), true );
+	if ( ! $stored ) { return false; }
+
+	$hash = hash_data( $data );
+
+	// NOTE: make sure event data doesn't include anything dynamic since we're specifically comparing hashes and not just the existence of a key
+
+	return apply_filters( 'cnvrsn_trckng_skip_repeated_' . esc_attr( $event ), $stored === $hash, $id, $data );
+}
+
+/**
+ * Store a representation of an event to be able to prevent it from firing more than once
+ *
+ * @param  array  $data Product data, for hashing and verifying uniqueness
+ * @return string $hash
+ * @since 0.6.0
+ */
+function hash_data( $data ) {
+	return hash( 'sha256', json_encode( $data ) );
 }

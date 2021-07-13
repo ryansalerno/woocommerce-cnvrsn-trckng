@@ -51,6 +51,15 @@ Regardless of what you add in this single filter, only *globally supported event
 
 Typically, active events follow the plugin's settings, and only events that are enabled inside at least one active integration will fire. If you're trying to force an event that isn't attached to an existing integration to fire, you can slide it in here.
 
+### `cnvrsn_trckng_skip_repeated_{$EVENT}`
+**Parameters:** `$should_skip` (boolean), `$wp_id` (int), `$event_data` (array)
+
+Some events should probably only fire once, and not repeat on any successive pageload/triggers--looking at you Thank You page refreshers. This filter is only encountered if the plugin has found some specific meta on the Post Object in question (`$wp_id`), and that meta will only be set after the given event is first dispatched for said Post Object.
+
+Internally, the plugin is hashing the full `$event_data` array to test for absolute uniqueness, but maybe you want to do some more nuanced attribute checking and business logic, or even some less nuanced `__return_true` clobbering.
+
+*Note that this is only natively called on the `purchase` event.*
+
 ***
 
 ## 🗂️ Event Data
